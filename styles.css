@@ -1,4 +1,4 @@
-/* Reset et base */
+/* style Css */
 * {
     margin: 0;
     padding: 0;
@@ -615,6 +615,184 @@ button:hover {
     0% { opacity: 0.6; }
     50% { opacity: 1; }
     100% { opacity: 0.6; }
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(212, 165, 165, 0.3);
+    border-radius: 50px;
+    padding: 10px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.3em;
+    transition: all 0.4s;
+    z-index: 10;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 5px 20px rgba(212, 165, 165, 0.3);
+}
+
+.theme-toggle .sun {
+    transition: all 0.3s;
+}
+
+.theme-toggle .moon {
+    transition: all 0.3s;
+    opacity: 0.3;
+}
+
+/* Dark Mode Styles */
+body.dark-mode {
+    background: linear-gradient(135deg, #1a1625 0%, #2d1b3d 50%, #1f1833 100%);
+}
+
+body.dark-mode::before {
+    background-image: 
+        radial-gradient(circle at 20% 50%, rgba(201, 160, 220, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(212, 165, 165, 0.15) 0%, transparent 50%);
+}
+
+body.dark-mode header {
+    background: linear-gradient(135deg, rgba(45, 35, 55, 0.95) 0%, rgba(35, 25, 45, 0.95) 100%);
+    border: 2px solid rgba(201, 160, 220, 0.3);
+}
+
+body.dark-mode .subtitle {
+    color: #b8a0c0;
+}
+
+body.dark-mode section {
+    background: linear-gradient(135deg, rgba(35, 25, 45, 0.9) 0%, rgba(45, 35, 55, 0.9) 100%);
+    border: 1px solid rgba(201, 160, 220, 0.2);
+}
+
+body.dark-mode section h2 {
+    color: #d4a5a5;
+}
+
+body.dark-mode .theme-toggle {
+    background: rgba(45, 35, 55, 0.9);
+    border: 2px solid rgba(201, 160, 220, 0.3);
+}
+
+body.dark-mode .theme-toggle .sun {
+    opacity: 0.3;
+}
+
+body.dark-mode .theme-toggle .moon {
+    opacity: 1;
+}
+
+body.dark-mode #stockSearch,
+body.dark-mode .input-group input {
+    background: rgba(45, 35, 55, 0.7);
+    color: #e8dfe8;
+    border-color: rgba(201, 160, 220, 0.3);
+}
+
+body.dark-mode #stockSearch:focus,
+body.dark-mode .input-group input:focus {
+    background: rgba(45, 35, 55, 0.9);
+    border-color: #c9a0dc;
+}
+
+body.dark-mode .stock-card {
+    background: linear-gradient(135deg, rgba(45, 35, 55, 0.95) 0%, rgba(35, 25, 45, 0.95) 100%);
+    border-left-color: #c9a0dc;
+}
+
+body.dark-mode .stock-price,
+body.dark-mode .detail-value,
+body.dark-mode .result-value {
+    color: #e8dfe8;
+}
+
+body.dark-mode .stock-name,
+body.dark-mode .detail-label,
+body.dark-mode .result-label,
+body.dark-mode .news-summary {
+    color: #b8a0c0;
+}
+
+body.dark-mode .detail-item,
+body.dark-mode .result-item {
+    background: rgba(45, 35, 55, 0.6);
+    border-color: rgba(201, 160, 220, 0.2);
+}
+
+body.dark-mode .calculator-container {
+    background: rgba(45, 35, 55, 0.5);
+    border-color: rgba(201, 160, 220, 0.3);
+}
+
+body.dark-mode .result-card,
+body.dark-mode .calc-result-card {
+    background: linear-gradient(135deg, rgba(45, 35, 55, 0.95) 0%, rgba(35, 25, 45, 0.95) 100%);
+    border-color: rgba(201, 160, 220, 0.3);
+}
+
+body.dark-mode .result-title {
+    color: #d4a5a5;
+}
+
+body.dark-mode .investment-tip {
+    background: rgba(201, 160, 220, 0.1);
+    border-left-color: #c9a0dc;
+    color: #b8a0c0;
+}
+
+body.dark-mode .news-article {
+    background: linear-gradient(135deg, rgba(45, 35, 55, 0.8) 0%, rgba(35, 25, 45, 0.8) 100%);
+    border-left-color: #c9a0dc;
+}
+
+body.dark-mode .news-title {
+    color: #e8dfe8;
+}
+
+body.dark-mode .news-source {
+    background: rgba(201, 160, 220, 0.2);
+    color: #d4a5a5;
+}
+
+body.dark-mode .empty-state {
+    color: #8b7d8b;
+}
+
+body.dark-mode .loading {
+    color: #c9a0dc;
+}
+
+body.dark-mode .error-message {
+    background: linear-gradient(135deg, rgba(212, 165, 165, 0.2) 0%, rgba(200, 150, 150, 0.2) 100%);
+    color: #e8c1c1;
+    border-left-color: #d4a5a5;
+}
+
+/* Chart Styles */
+#chartContainer {
+    margin-top: 25px;
+    padding: 20px;
+    background: rgba(255, 250, 250, 0.5);
+    border-radius: 15px;
+    border: 2px dashed rgba(212, 165, 165, 0.3);
+}
+
+body.dark-mode #chartContainer {
+    background: rgba(45, 35, 55, 0.5);
+    border-color: rgba(201, 160, 220, 0.3);
+}
+
+#stockChart {
+    max-height: 300px;
 }
 
 /* Responsive */
