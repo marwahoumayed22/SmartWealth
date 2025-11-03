@@ -7,12 +7,43 @@ const API_BASE = 'https://www.alphavantage.co/query';
 let portfolio = JSON.parse(localStorage.getItem('portfolio')) || [];
 let comparisonList = [];
 
+// Variables pour le rafraîchissement automatique
+let autoRefreshInterval = null;
+let isAutoRefreshEnabled = false;
+
+// Variables pour la conversion de devise
+let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
+let exchangeRates = {
+    'USD': 1,
+    'EUR': 0.92,
+    'CAD': 1.36,
+    'GBP': 0.79,
+    'JPY': 149.50,
+    'CHF': 0.88
+};
+
+// Symboles de devises
+const currencySymbols = {
+    'USD': '$',
+    'EUR': '€',
+    'CAD': '$',
+    'GBP': '£',
+    'JPY': '¥',
+    'CHF': 'Fr'
+};
+
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Application chargée !');
     
     // Charger le thème sauvegardé
     loadTheme();
+    
+    // Initialiser la devise
+    initializeCurrency();
+    
+    // Initialiser le rafraîchissement automatique
+    initializeAutoRefresh();
     
     // Event listeners
     document.getElementById('searchBtn').addEventListener('click', searchStock);
@@ -26,11 +57,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Dark mode toggle
     document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
     
+    // Currency selector
+    document.getElementById('currencySelect').addEventListener('change', handleCurrencyChange);
+    
+    // Auto-refresh controls
+    document.getElementById('autoRefreshToggle').addEventListener('change', toggleAutoRefresh);
+    document.getElementById('refreshInterval').addEventListener('change', updateRefreshInterval);
+    
     // Calculator
     document.getElementById('calculateBtn').addEventListener('click', calculateInvestment);
     
     // Charger le portefeuille existant
     displayPortfolio();
+    
+    // Mettre à jour les taux de change
+    updateExchangeRates();
 });
 
 // === MODE SOMBRE ===
@@ -58,6 +99,200 @@ function toggleDarkMode() {
 function updateToggleIcon(isDarkMode) {
     const toggleIcon = document.querySelector('.toggle-icon');
     toggleIcon.textContent = isDarkMode ? '☀️' : '🌙';
+}
+
+// === CONVERSION DE DEVISES ===
+
+// Initialiser le sélecteur de devise
+function initializeCurrency() {
+    const currencySelect = document.getElementById('currencySelect');
+    currencySelect.value = currentCurrency;
+}
+
+// Gérer le changement de devise
+function handleCurrencyChange(event) {
+    currentCurrency = event.target.value;
+    localStorage.setItem('selectedCurrency', currentCurrency);
+    
+    // Rafraîchir l'affichage
+    displayPortfolio();
+    
+    // Rafraîchir les résultats de recherche s'il y en a
+    const searchResults = document.getElementById('searchResults');
+    if (searchResults.innerHTML && !searchResults.innerHTML.includes('loading')) {
+        const symbol = document.getElementById('stockSearch').value.trim().toUpperCase();
+        if (symbol) {
+            searchStock();
+        }
+    }
+    
+    // Rafraîchir le calculateur s'il y a des résultats
+    const calcResults = document.getElementById('calculatorResults');
+    if (calcResults.innerHTML && !calcResults.innerHTML.includes('loading')) {
+        calculateInvestment();
+    }
+}
+
+// Convertir un montant USD vers la devise sélectionnée
+function convertCurrency(amountUSD) {
+    return amountUSD * exchangeRates[currentCurrency];
+}
+
+// Obtenir le symbole de la devise actuelle
+function getCurrencySymbol() {
+    return currencySymbols[currentCurrency];
+}
+
+// Formater un prix avec la devise
+function formatPrice(price) {
+    const convertedPrice = convertCurrency(price);
+    const symbol = getCurrencySymbol();
+    
+    // Format selon la devise
+    if (currentCurrency === 'JPY') {
+        return `${symbol}${Math.round(convertedPrice).toLocaleString('fr-FR')}`;
+    } else {
+        return `${symbol}${convertedPrice.toFixed(2)}`;
+    }
+}
+
+// Mettre à jour les taux de change (API gratuite)
+async function updateExchangeRates() {
+    try {
+        // Utiliser une API de taux de change gratuite
+        const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        const data = await response.json();
+        
+        if (data.rates) {
+            exchangeRates = {
+                'USD': 1,
+                'EUR': data.rates.EUR || 0.92,
+                'CAD': data.rates.CAD || 1.36,
+                'GBP': data.rates.GBP || 0.79,
+                'JPY': data.rates.JPY || 149.50,
+                'CHF': data.rates.CHF || 0.88
+            };
+            console.log('✅ Taux de change mis à jour');
+        }
+    } catch (error) {
+        console.log('ℹ️ Utilisation des taux de change par défaut');
+    }
+}
+
+// === RAFRAÎCHISSEMENT AUTOMATIQUE ===
+
+// Initialiser le rafraîchissement automatique
+function initializeAutoRefresh() {
+    const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+    const refreshInterval = document.getElementById('refreshInterval');
+    
+    // Charger les préférences sauvegardées
+    const savedAutoRefresh = localStorage.getItem('autoRefresh') === 'true';
+    const savedInterval = localStorage.getItem('refreshInterval') || '60';
+    
+    autoRefreshToggle.checked = savedAutoRefresh;
+    refreshInterval.value = savedInterval;
+    refreshInterval.disabled = !savedAutoRefresh;
+    
+    if (savedAutoRefresh) {
+        startAutoRefresh(parseInt(savedInterval));
+    }
+}
+
+// Activer/désactiver le rafraîchissement automatique
+function toggleAutoRefresh(event) {
+    isAutoRefreshEnabled = event.target.checked;
+    const refreshInterval = document.getElementById('refreshInterval');
+    
+    refreshInterval.disabled = !isAutoRefreshEnabled;
+    localStorage.setItem('autoRefresh', isAutoRefreshEnabled);
+    
+    if (isAutoRefreshEnabled) {
+        const interval = parseInt(refreshInterval.value);
+        startAutoRefresh(interval);
+        showNotification('🔄 Rafraîchissement automatique activé', 'success');
+    } else {
+        stopAutoRefresh();
+        showNotification('⏸️ Rafraîchissement automatique désactivé', 'info');
+    }
+}
+
+// Mettre à jour l'intervalle de rafraîchissement
+function updateRefreshInterval(event) {
+    const interval = parseInt(event.target.value);
+    localStorage.setItem('refreshInterval', interval);
+    
+    if (isAutoRefreshEnabled) {
+        stopAutoRefresh();
+        startAutoRefresh(interval);
+        showNotification(`🔄 Intervalle mis à jour: ${interval}s`, 'success');
+    }
+}
+
+// Démarrer le rafraîchissement automatique
+function startAutoRefresh(intervalSeconds) {
+    stopAutoRefresh(); // Arrêter l'ancien intervalle s'il existe
+    
+    autoRefreshInterval = setInterval(() => {
+        console.log('🔄 Rafraîchissement automatique...');
+        refreshData();
+    }, intervalSeconds * 1000);
+    
+    isAutoRefreshEnabled = true;
+}
+
+// Arrêter le rafraîchissement automatique
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+    isAutoRefreshEnabled = false;
+}
+
+// Rafraîchir les données
+async function refreshData() {
+    // Rafraîchir le portefeuille si non vide
+    if (portfolio.length > 0) {
+        await displayPortfolio();
+    }
+    
+    // Rafraîchir les résultats de recherche s'il y en a
+    const searchResults = document.getElementById('searchResults');
+    if (searchResults.innerHTML && !searchResults.innerHTML.includes('empty-state') && !searchResults.innerHTML.includes('loading')) {
+        const symbol = document.getElementById('stockSearch').value.trim().toUpperCase();
+        if (symbol) {
+            await searchStock();
+        }
+    }
+}
+
+// Afficher une notification
+function showNotification(message, type = 'info') {
+    // Créer une notification temporaire
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        background: ${type === 'success' ? 'var(--vert)' : 'var(--lavande)'};
+        color: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px var(--shadow-color);
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+        font-family: Georgia, serif;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
 }
 
 // Fonction principale de recherche
@@ -122,21 +357,21 @@ function displayStockCard(stock, containerId) {
                     <div class="stock-symbol">${stock.symbol}</div>
                     <div class="stock-name">${stock.name}</div>
                 </div>
-                <div class="stock-price">$${stock.price.toFixed(2)}</div>
+                <div class="stock-price">${formatPrice(stock.price)}</div>
             </div>
             
             <div class="stock-change ${isPositive ? 'positive' : 'negative'}">
-                ${isPositive ? '↑' : '↓'} ${Math.abs(stock.change).toFixed(2)} (${stock.changePercent})
+                ${isPositive ? '↑' : '↓'} ${formatPrice(Math.abs(stock.change))} (${stock.changePercent})
             </div>
             
             <div class="stock-details">
                 <div class="detail-item">
                     <div class="detail-label">Plus Haut</div>
-                    <div class="detail-value">$${stock.high.toFixed(2)}</div>
+                    <div class="detail-value">${formatPrice(stock.high)}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Plus Bas</div>
-                    <div class="detail-value">$${stock.low.toFixed(2)}</div>
+                    <div class="detail-value">${formatPrice(stock.low)}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Volume</div>
@@ -144,7 +379,7 @@ function displayStockCard(stock, containerId) {
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Clôture Précédente</div>
-                    <div class="detail-value">$${stock.previousClose.toFixed(2)}</div>
+                    <div class="detail-value">${formatPrice(stock.previousClose)}</div>
                 </div>
             </div>
             
@@ -199,11 +434,11 @@ async function displayPortfolio() {
                         <div>
                             <div class="stock-symbol">${stockData.symbol}</div>
                         </div>
-                        <div class="stock-price">$${stockData.price.toFixed(2)}</div>
+                        <div class="stock-price">${formatPrice(stockData.price)}</div>
                     </div>
                     
                     <div class="stock-change ${isPositive ? 'positive' : 'negative'}">
-                        ${isPositive ? '↑' : '↓'} ${Math.abs(stockData.change).toFixed(2)} (${stockData.changePercent})
+                        ${isPositive ? '↑' : '↓'} ${formatPrice(Math.abs(stockData.change))} (${stockData.changePercent})
                     </div>
                     
                     <div class="action-buttons">
@@ -280,21 +515,21 @@ async function displayComparison() {
                         <div>
                             <div class="stock-symbol">${stockData.symbol}</div>
                         </div>
-                        <div class="stock-price">$${stockData.price.toFixed(2)}</div>
+                        <div class="stock-price">${formatPrice(stockData.price)}</div>
                     </div>
                     
                     <div class="stock-change ${isPositive ? 'positive' : 'negative'}">
-                        ${isPositive ? '↑' : '↓'} ${Math.abs(stockData.change).toFixed(2)} (${stockData.changePercent})
+                        ${isPositive ? '↑' : '↓'} ${formatPrice(Math.abs(stockData.change))} (${stockData.changePercent})
                     </div>
                     
                     <div class="stock-details">
                         <div class="detail-item">
                             <div class="detail-label">Plus Haut</div>
-                            <div class="detail-value">$${stockData.high.toFixed(2)}</div>
+                            <div class="detail-value">${formatPrice(stockData.high)}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Plus Bas</div>
-                            <div class="detail-value">$${stockData.low.toFixed(2)}</div>
+                            <div class="detail-value">${formatPrice(stockData.low)}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Volume</div>
@@ -530,7 +765,7 @@ async function calculateInvestment() {
             <div class="result-card">
                 <div class="result-header">
                     <div class="result-title">Votre investissement dans ${symbol}</div>
-                    <div class="result-total">$${totalCost.toFixed(2)}</div>
+                    <div class="result-total">${formatPrice(totalCost)}</div>
                 </div>
                 
                 <div class="result-details">
@@ -541,25 +776,25 @@ async function calculateInvestment() {
                     
                     <div class="result-item">
                         <div class="result-label">Prix par action</div>
-                        <div class="result-value">$${stockData.price.toFixed(2)}</div>
+                        <div class="result-value">${formatPrice(stockData.price)}</div>
                     </div>
                     
                     <div class="result-item">
                         <div class="result-label">Coût total</div>
-                        <div class="result-value">$${totalCost.toFixed(2)}</div>
+                        <div class="result-value">${formatPrice(totalCost)}</div>
                     </div>
                     
                     <div class="result-item">
                         <div class="result-label">Variation du jour</div>
                         <div class="result-value ${isPositive ? 'positive' : 'negative'}" style="color: ${isPositive ? '#a8c9a8' : '#d4a5a5'}">
-                            ${isPositive ? '+' : ''}$${(stockData.change * shares).toFixed(2)}
+                            ${isPositive ? '+' : ''}${formatPrice(stockData.change * shares)}
                         </div>
                     </div>
                 </div>
                 
                 <div class="investment-tip">
                     💡 <strong>Note zen :</strong> Avec ${shares} action${shares > 1 ? 's' : ''} de ${symbol}, 
-                    votre investissement varie d'environ $${potentialDailyVariation.toFixed(2)} par jour. 
+                    votre investissement varie d'environ ${formatPrice(potentialDailyVariation)} par jour. 
                     ${isPositive ? '✨ Belle journée pour vos actions !' : '🌸 Restez sereine, les marchés fluctuent naturellement.'}
                 </div>
             </div>
