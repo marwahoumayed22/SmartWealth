@@ -23,6 +23,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Calculator
     document.getElementById('calculateBtn').addEventListener('click', calculateInvestment);
     
+    // Theme Toggle
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    loadTheme();
+    
     // Charger le portefeuille existant
     displayPortfolio();
 });
@@ -44,6 +48,9 @@ async function searchStock() {
         
         // Charger les news pour cette action
         fetchStockNews(symbol);
+        
+        // Charger le graphique
+        fetchAndDisplayChart(symbol);
     } catch (error) {
         showError('Erreur lors de la recherche. Vérifiez le symbole et réessayez.');
         console.error(error);
@@ -560,4 +567,184 @@ function showError(message) {
     setTimeout(() => {
         searchResults.innerHTML = '';
     }, 3000);
+}
+
+// ===== GRAPHIQUE =====
+let stockChart = null;
+
+async function fetchAndDisplayChart(symbol) {
+    const chartContainer = document.getElementById('chartContainer');
+    chartContainer.style.display = 'block';
+    
+    try {
+        // Récupérer les données historiques (TIME_SERIES_DAILY)
+        const chartUrl = `${API_BASE}?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`;
+        const response = await fetch(chartUrl);
+        const data = await response.json();
+        
+        const timeSeries = data['Time Series (Daily)'];
+        
+        if (!timeSeries) {
+            // Si pas de données, créer un graphique de démonstration
+            createDemoChart(symbol);
+            return;
+        }
+        
+        // Extraire les 30 derniers jours
+        const dates = Object.keys(timeSeries).slice(0, 30).reverse();
+        const prices = dates.map(date => parseFloat(timeSeries[date]['4. close']));
+        
+        createChart(symbol, dates, prices);
+        
+    } catch (error) {
+        console.error('Erreur graphique:', error);
+        createDemoChart(symbol);
+    }
+}
+
+function createChart(symbol, dates, prices) {
+    const ctx = document.getElementById('stockChart').getContext('2d');
+    
+    // Détruire l'ancien graphique s'il existe
+    if (stockChart) {
+        stockChart.destroy();
+    }
+    
+    // Déterminer la couleur selon la tendance
+    const isPositive = prices[prices.length - 1] > prices[0];
+    const lineColor = isPositive ? '#a8c9a8' : '#e8c1c1';
+    const gradientColor = isPositive ? 
+        'rgba(168, 201, 168, 0.2)' : 
+        'rgba(232, 193, 193, 0.2)';
+    
+    // Créer le dégradé
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, gradientColor);
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    // Formater les dates
+    const formattedDates = dates.map(date => {
+        const d = new Date(date);
+        return `${d.getDate()}/${d.getMonth() + 1}`;
+    });
+    
+    // Créer le graphique
+    stockChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: formattedDates,
+            datasets: [{
+                label: `Prix ${symbol}`,
+                data: prices,
+                borderColor: lineColor,
+                backgroundColor: gradient,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: lineColor,
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: lineColor,
+                    borderWidth: 2,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return '$' + context.parsed.y.toFixed(2);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#8b7d8b',
+                        maxRotation: 0,
+                        autoSkipPadding: 20
+                    }
+                },
+                y: {
+                    grid: {
+                        color: 'rgba(212, 165, 165, 0.1)'
+                    },
+                    ticks: {
+                        color: '#8b7d8b',
+                        callback: function(value) {
+                            return '$' + value.toFixed(0);
+                        }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+}
+
+function createDemoChart(symbol) {
+    // Créer des données de démo si l'API ne fonctionne pas
+    const today = new Date();
+    const dates = [];
+    const basePrice = 150 + Math.random() * 100;
+    const prices = [];
+    
+    for (let i = 29; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        dates.push(date.toISOString().split('T')[0]);
+        
+        // Générer un prix avec variation
+        const variation = (Math.random() - 0.5) * 10;
+        const price = i === 29 ? basePrice : prices[prices.length - 1] + variation;
+        prices.push(Math.max(price, basePrice * 0.8)); // Éviter les prix trop bas
+    }
+    
+    createChart(symbol, dates, prices);
+    
+    // Ajouter une note
+    const note = document.createElement('p');
+    note.style.cssText = 'text-align: center; color: #8b7d8b; font-size: 0.85em; margin-top: 10px; font-style: italic;';
+    note.textContent = '💡 Données illustratives pour démonstration';
+    document.getElementById('chartContainer').appendChild(note);
+}
+
+// ===== THEME TOGGLE =====
+function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    
+    // Animation du bouton
+    const toggleBtn = document.getElementById('themeToggle');
+    toggleBtn.style.transform = 'rotate(360deg)';
+    setTimeout(() => {
+        toggleBtn.style.transform = 'rotate(0deg)';
+    }, 400);
+}
+
+function loadTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
 }
