@@ -9,6 +9,10 @@
 <body>
     <div class="container">
         <header>
+            <button id="themeToggle" class="theme-toggle" aria-label="Changer de thème">
+                <span class="sun">☀️</span>
+                <span class="moon">🌙</span>
+            </button>
             <h1>✨ Mon Espace Finance Zen ✨</h1>
             <p class="subtitle">Investissez avec sérénité et élégance</p>
         </header>
@@ -26,6 +30,10 @@
                     <button id="searchBtn">Rechercher</button>
                 </div>
                 <div id="searchResults"></div>
+                <div id="chartContainer" style="display: none;">
+                    <h3 style="color: #8b6f8b; margin: 20px 0 10px 0; font-weight: 300;">📈 Évolution du Prix</h3>
+                    <canvas id="stockChart"></canvas>
+                </div>
             </section>
 
             <!-- Calculateur d'investissement -->
@@ -74,6 +82,7 @@
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
