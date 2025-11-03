@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Mon Espace Finance Zen</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>✨ Mon Espace Finance Zen ✨</h1>
+            <p class="subtitle">Investissez avec sérénité et élégance</p>
+        </header>
+
+        <main>
+            <!-- Section de recherche -->
+            <section class="search-section">
+                <h2>🔍 Découvrir une action</h2>
+                <div class="search-box">
+                    <input 
+                        type="text" 
+                        id="stockSearch" 
+                        placeholder="Entrez un symbole (ex: AAPL, MSFT, GOOGL)"
+                    >
+                    <button id="searchBtn">Rechercher</button>
+                </div>
+                <div id="searchResults"></div>
+            </section>
+
+            <!-- Calculateur d'investissement -->
+            <section class="calculator-section">
+                <h2>✨ Calculateur d'Investissement</h2>
+                <div class="calculator-container">
+                    <div class="calculator-inputs">
+                        <div class="input-group">
+                            <label for="calcSymbol">Symbole de l'action</label>
+                            <input type="text" id="calcSymbol" placeholder="Ex: AAPL">
+                        </div>
+                        <div class="input-group">
+                            <label for="calcShares">Nombre d'actions</label>
+                            <input type="number" id="calcShares" placeholder="Ex: 10" min="1">
+                        </div>
+                        <button id="calculateBtn" class="calc-btn">💰 Calculer l'investissement</button>
+                    </div>
+                    <div id="calculatorResults" class="calculator-results"></div>
+                </div>
+            </section>
+
+            <!-- News financières -->
+            <section class="news-section">
+                <h2>📰 Actualités Financières</h2>
+                <div class="news-container">
+                    <p class="empty-state">Recherchez une action pour voir ses actualités récentes ✨</p>
+                </div>
+            </section>
+
+            <!-- Section de comparaison -->
+            <section class="comparison-section">
+                <h2>🌸 Comparer mes actions</h2>
+                <div id="comparisonArea">
+                    <p class="empty-state">Sélectionnez des actions pour les comparer en douceur</p>
+                </div>
+            </section>
+
+            <!-- Mon portefeuille -->
+            <section class="portfolio-section">
+                <h2>💎 Mon Portefeuille Personnel</h2>
+                <button id="clearPortfolioBtn" class="secondary-btn">Réinitialiser</button>
+                <div id="portfolioList">
+                    <p class="empty-state">Votre espace est vide. Ajoutez vos premières actions ✨</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
