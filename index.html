@@ -11,9 +11,40 @@
         <header>
             <h1>✨ Mon Espace Finance Zen ✨</h1>
             <p class="subtitle">Investissez avec sérénité et élégance</p>
-            <button id="darkModeToggle" class="dark-mode-toggle" aria-label="Basculer le mode sombre">
-                <span class="toggle-icon">🌙</span>
-            </button>
+            
+            <div class="header-controls">
+                <!-- Sélecteur de devise -->
+                <div class="currency-selector">
+                    <label for="currencySelect">💱</label>
+                    <select id="currencySelect" class="currency-dropdown">
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="CAD">CAD ($)</option>
+                        <option value="GBP">GBP (£)</option>
+                        <option value="JPY">JPY (¥)</option>
+                        <option value="CHF">CHF (Fr)</option>
+                    </select>
+                </div>
+                
+                <!-- Contrôle de rafraîchissement -->
+                <div class="auto-refresh-control">
+                    <label class="refresh-toggle">
+                        <input type="checkbox" id="autoRefreshToggle">
+                        <span class="refresh-label">🔄 Auto-refresh</span>
+                    </label>
+                    <select id="refreshInterval" class="refresh-dropdown" disabled>
+                        <option value="30">30s</option>
+                        <option value="60" selected>1min</option>
+                        <option value="120">2min</option>
+                        <option value="300">5min</option>
+                    </select>
+                </div>
+                
+                <!-- Mode sombre -->
+                <button id="darkModeToggle" class="dark-mode-toggle" aria-label="Basculer le mode sombre">
+                    <span class="toggle-icon">🌙</span>
+                </button>
+            </div>
         </header>
 
         <main>
