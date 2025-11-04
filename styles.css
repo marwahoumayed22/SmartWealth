@@ -11,6 +11,7 @@ body {
     min-height: 100vh;
     padding: 20px;
     position: relative;
+    overflow-x: hidden;
 }
 
 body::before {
@@ -25,6 +26,39 @@ body::before {
         radial-gradient(circle at 80% 80%, rgba(221, 160, 221, 0.1) 0%, transparent 50%);
     pointer-events: none;
     z-index: 0;
+}
+
+/* Canvas Constellation */
+#constellationCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1s ease;
+}
+
+body.constellation-mode #constellationCanvas {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+body.constellation-mode {
+    background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1428 100%);
+}
+
+body.constellation-mode::before {
+    background-image: 
+        radial-gradient(circle at 20% 50%, rgba(138, 43, 226, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(147, 112, 219, 0.1) 0%, transparent 50%);
+}
+
+body.constellation-mode .container {
+    position: relative;
+    z-index: 1;
 }
 
 .container {
@@ -44,6 +78,13 @@ header {
     margin-bottom: 30px;
     border: 2px solid rgba(255, 192, 203, 0.3);
     backdrop-filter: blur(10px);
+    position: relative;
+}
+
+body.constellation-mode header {
+    background: linear-gradient(135deg, rgba(20, 25, 45, 0.95) 0%, rgba(30, 35, 55, 0.95) 100%);
+    border: 2px solid rgba(138, 43, 226, 0.4);
+    box-shadow: 0 15px 50px rgba(138, 43, 226, 0.3);
 }
 
 header h1 {
@@ -57,11 +98,94 @@ header h1 {
     letter-spacing: 2px;
 }
 
+body.constellation-mode header h1 {
+    background: linear-gradient(135deg, #9d7bb3 0%, #d4a5a5 50%, #c9a0dc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
 .subtitle {
     color: #8b7d8b;
     font-size: 1.2em;
     font-style: italic;
     font-weight: 300;
+}
+
+body.constellation-mode .subtitle {
+    color: #b8a0c0;
+}
+
+/* Constellation Toggle Button */
+.constellation-toggle {
+    position: absolute;
+    top: 20px;
+    right: 100px;
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.8) 0%, rgba(147, 112, 219, 0.8) 100%);
+    border: 2px solid rgba(138, 43, 226, 0.3);
+    border-radius: 50px;
+    padding: 10px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.4em;
+    transition: all 0.4s;
+    z-index: 10;
+    box-shadow: 0 5px 20px rgba(138, 43, 226, 0.3);
+}
+
+.constellation-toggle:hover {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 8px 30px rgba(138, 43, 226, 0.5);
+}
+
+body.constellation-mode .constellation-toggle {
+    background: linear-gradient(135deg, rgba(147, 112, 219, 1) 0%, rgba(138, 43, 226, 1) 100%);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(212, 165, 165, 0.3);
+    border-radius: 50px;
+    padding: 10px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.3em;
+    transition: all 0.4s;
+    z-index: 10;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 5px 20px rgba(212, 165, 165, 0.3);
+}
+
+.theme-toggle .sun {
+    transition: all 0.3s;
+}
+
+.theme-toggle .moon {
+    transition: all 0.3s;
+    opacity: 0.3;
 }
 
 /* Sections */
@@ -75,6 +199,12 @@ section {
     backdrop-filter: blur(10px);
 }
 
+body.constellation-mode section {
+    background: linear-gradient(135deg, rgba(20, 25, 45, 0.9) 0%, rgba(30, 35, 55, 0.9) 100%);
+    border: 1px solid rgba(138, 43, 226, 0.3);
+    box-shadow: 0 10px 35px rgba(138, 43, 226, 0.2);
+}
+
 section h2 {
     color: #8b6f8b;
     margin-bottom: 25px;
@@ -84,6 +214,11 @@ section h2 {
     padding-bottom: 15px;
     font-weight: 300;
     letter-spacing: 1px;
+}
+
+body.constellation-mode section h2 {
+    color: #d4a5a5;
+    border-image: linear-gradient(90deg, #9d7bb3, #d4a5a5) 1;
 }
 
 /* Search box */
@@ -104,11 +239,23 @@ section h2 {
     font-family: 'Georgia', serif;
 }
 
+body.constellation-mode #stockSearch {
+    background: rgba(30, 35, 55, 0.7);
+    border: 2px solid rgba(138, 43, 226, 0.3);
+    color: #e8dfe8;
+}
+
 #stockSearch:focus {
     outline: none;
     border-color: #d4a5a5;
     box-shadow: 0 0 20px rgba(212, 165, 165, 0.3);
     background: white;
+}
+
+body.constellation-mode #stockSearch:focus {
+    background: rgba(30, 35, 55, 0.9);
+    border-color: #9d7bb3;
+    box-shadow: 0 0 20px rgba(138, 43, 226, 0.4);
 }
 
 button {
@@ -152,9 +299,19 @@ button:hover {
     box-shadow: 0 5px 20px rgba(212, 165, 165, 0.15);
 }
 
+body.constellation-mode .stock-card {
+    background: linear-gradient(135deg, rgba(30, 35, 55, 0.95) 0%, rgba(40, 45, 65, 0.95) 100%);
+    border-left: 5px solid #9d7bb3;
+    box-shadow: 0 5px 20px rgba(138, 43, 226, 0.2);
+}
+
 .stock-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 15px 40px rgba(212, 165, 165, 0.25);
+}
+
+body.constellation-mode .stock-card:hover {
+    box-shadow: 0 15px 40px rgba(138, 43, 226, 0.4);
 }
 
 .stock-header {
@@ -179,11 +336,19 @@ button:hover {
     font-style: italic;
 }
 
+body.constellation-mode .stock-name {
+    color: #b8a0c0;
+}
+
 .stock-price {
     font-size: 2.2em;
     font-weight: 300;
     color: #5d4e5d;
     letter-spacing: 1px;
+}
+
+body.constellation-mode .stock-price {
+    color: #e8dfe8;
 }
 
 .stock-change {
@@ -222,9 +387,18 @@ button:hover {
     transition: all 0.3s;
 }
 
+body.constellation-mode .detail-item {
+    background: rgba(30, 35, 55, 0.6);
+    border: 1px solid rgba(138, 43, 226, 0.2);
+}
+
 .detail-item:hover {
     background: rgba(255, 255, 255, 0.9);
     transform: translateY(-2px);
+}
+
+body.constellation-mode .detail-item:hover {
+    background: rgba(30, 35, 55, 0.9);
 }
 
 .detail-label {
@@ -235,10 +409,18 @@ button:hover {
     letter-spacing: 0.5px;
 }
 
+body.constellation-mode .detail-label {
+    color: #b8a0c0;
+}
+
 .detail-value {
     font-size: 1.2em;
     font-weight: 500;
     color: #5d4e5d;
+}
+
+body.constellation-mode .detail-value {
+    color: #e8dfe8;
 }
 
 /* Action buttons */
@@ -291,6 +473,10 @@ button:hover {
     font-weight: 300;
 }
 
+body.constellation-mode .empty-state {
+    color: #8b7d8b;
+}
+
 /* Loading state */
 .loading {
     text-align: center;
@@ -298,6 +484,10 @@ button:hover {
     color: #d4a5a5;
     font-size: 1.2em;
     font-style: italic;
+}
+
+body.constellation-mode .loading {
+    color: #c9a0dc;
 }
 
 /* Comparison grid */
@@ -326,6 +516,11 @@ button:hover {
     border: 2px dashed rgba(212, 165, 165, 0.3);
 }
 
+body.constellation-mode .calculator-container {
+    background: rgba(30, 35, 55, 0.5);
+    border: 2px dashed rgba(138, 43, 226, 0.3);
+}
+
 .calculator-inputs {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -346,6 +541,10 @@ button:hover {
     letter-spacing: 0.5px;
 }
 
+body.constellation-mode .input-group label {
+    color: #b8a0c0;
+}
+
 .input-group input {
     padding: 15px;
     border: 2px solid rgba(212, 165, 165, 0.3);
@@ -356,11 +555,23 @@ button:hover {
     font-family: 'Georgia', serif;
 }
 
+body.constellation-mode .input-group input {
+    background: rgba(30, 35, 55, 0.7);
+    border: 2px solid rgba(138, 43, 226, 0.3);
+    color: #e8dfe8;
+}
+
 .input-group input:focus {
     outline: none;
     border-color: #d4a5a5;
     background: white;
     box-shadow: 0 0 15px rgba(212, 165, 165, 0.2);
+}
+
+body.constellation-mode .input-group input:focus {
+    background: rgba(30, 35, 55, 0.9);
+    border-color: #9d7bb3;
+    box-shadow: 0 0 15px rgba(138, 43, 226, 0.3);
 }
 
 .calc-btn {
@@ -383,6 +594,12 @@ button:hover {
     box-shadow: 0 10px 30px rgba(212, 165, 165, 0.2);
 }
 
+body.constellation-mode .result-card {
+    background: linear-gradient(135deg, rgba(30, 35, 55, 0.95) 0%, rgba(40, 45, 65, 0.95) 100%);
+    border: 2px solid rgba(138, 43, 226, 0.3);
+    box-shadow: 0 10px 30px rgba(138, 43, 226, 0.3);
+}
+
 .result-header {
     text-align: center;
     margin-bottom: 25px;
@@ -393,6 +610,10 @@ button:hover {
     color: #8b6f8b;
     margin-bottom: 10px;
     font-weight: 300;
+}
+
+body.constellation-mode .result-title {
+    color: #d4a5a5;
 }
 
 .result-total {
@@ -420,6 +641,11 @@ button:hover {
     border: 1px solid rgba(212, 165, 165, 0.2);
 }
 
+body.constellation-mode .result-item {
+    background: rgba(30, 35, 55, 0.6);
+    border: 1px solid rgba(138, 43, 226, 0.2);
+}
+
 .result-label {
     color: #8b7d8b;
     font-size: 0.9em;
@@ -427,10 +653,18 @@ button:hover {
     font-weight: 300;
 }
 
+body.constellation-mode .result-label {
+    color: #b8a0c0;
+}
+
 .result-value {
     color: #5d4e5d;
     font-size: 1.5em;
     font-weight: 500;
+}
+
+body.constellation-mode .result-value {
+    color: #e8dfe8;
 }
 
 .investment-tip {
@@ -441,6 +675,12 @@ button:hover {
     border-left: 4px solid #c9a0dc;
     font-style: italic;
     color: #8b7d8b;
+}
+
+body.constellation-mode .investment-tip {
+    background: rgba(138, 43, 226, 0.1);
+    border-left: 4px solid #9d7bb3;
+    color: #b8a0c0;
 }
 
 /* News Section Styles */
@@ -456,6 +696,10 @@ button:hover {
     margin-bottom: 20px;
     padding-bottom: 15px;
     border-bottom: 2px solid rgba(212, 165, 165, 0.2);
+}
+
+body.constellation-mode .news-header {
+    border-bottom: 2px solid rgba(138, 43, 226, 0.2);
 }
 
 .news-stock-symbol {
@@ -483,10 +727,20 @@ button:hover {
     box-shadow: 0 5px 20px rgba(212, 165, 165, 0.1);
 }
 
+body.constellation-mode .news-article {
+    background: linear-gradient(135deg, rgba(30, 35, 55, 0.8) 0%, rgba(40, 45, 65, 0.8) 100%);
+    border-left: 4px solid #9d7bb3;
+    box-shadow: 0 5px 20px rgba(138, 43, 226, 0.15);
+}
+
 .news-article:hover {
     transform: translateY(-3px);
     box-shadow: 0 10px 30px rgba(212, 165, 165, 0.25);
     border-left-color: #c9a0dc;
+}
+
+body.constellation-mode .news-article:hover {
+    box-shadow: 0 10px 30px rgba(138, 43, 226, 0.35);
 }
 
 .news-title {
@@ -497,11 +751,19 @@ button:hover {
     line-height: 1.5;
 }
 
+body.constellation-mode .news-title {
+    color: #e8dfe8;
+}
+
 .news-summary {
     color: #8b7d8b;
     margin-bottom: 15px;
     line-height: 1.6;
     font-size: 0.95em;
+}
+
+body.constellation-mode .news-summary {
+    color: #b8a0c0;
 }
 
 .news-meta {
@@ -515,6 +777,10 @@ button:hover {
     border-top: 1px solid rgba(212, 165, 165, 0.2);
 }
 
+body.constellation-mode .news-meta {
+    border-top: 1px solid rgba(138, 43, 226, 0.2);
+}
+
 .news-source {
     background: linear-gradient(135deg, rgba(212, 165, 165, 0.2) 0%, rgba(201, 160, 220, 0.2) 100%);
     padding: 6px 15px;
@@ -522,6 +788,11 @@ button:hover {
     font-size: 0.85em;
     color: #8b6f8b;
     font-weight: 500;
+}
+
+body.constellation-mode .news-source {
+    background: rgba(138, 43, 226, 0.2);
+    color: #d4a5a5;
 }
 
 .news-time {
@@ -550,103 +821,6 @@ button:hover {
 .sentiment-neutral {
     background: linear-gradient(135deg, #e8dfe8 0%, #d4c5d4 100%);
     color: #8b7d8b;
-}
-
-.news-link {
-    display: inline-block;
-    margin-top: 10px;
-    color: #c9a0dc;
-    text-decoration: none;
-    font-size: 0.9em;
-    font-weight: 500;
-    transition: all 0.3s;
-}
-
-.news-link:hover {
-    color: #d4a5a5;
-    transform: translateX(5px);
-}
-
-.news-filters {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
-.filter-btn {
-    padding: 10px 20px;
-    background: rgba(255, 255, 255, 0.7);
-    border: 2px solid rgba(212, 165, 165, 0.3);
-    border-radius: 20px;
-    color: #8b7d8b;
-    font-size: 0.9em;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.filter-btn:hover, .filter-btn.active {
-    background: linear-gradient(135deg, #d4a5a5 0%, #c9a0dc 100%);
-    color: white;
-    border-color: transparent;
-}
-
-.no-news {
-    text-align: center;
-    padding: 40px;
-    color: #b8a0c0;
-    font-style: italic;
-}
-
-.news-skeleton {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.skeleton-line {
-    height: 20px;
-    background: linear-gradient(90deg, rgba(212, 165, 165, 0.1) 0%, rgba(212, 165, 165, 0.2) 50%, rgba(212, 165, 165, 0.1) 100%);
-    border-radius: 10px;
-    animation: skeleton-loading 1.5s infinite;
-}
-
-@keyframes skeleton-loading {
-    0% { opacity: 0.6; }
-    50% { opacity: 1; }
-    100% { opacity: 0.6; }
-}
-
-/* Theme Toggle Button */
-.theme-toggle {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(212, 165, 165, 0.3);
-    border-radius: 50px;
-    padding: 10px 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 1.3em;
-    transition: all 0.4s;
-    z-index: 10;
-}
-
-.theme-toggle:hover {
-    transform: scale(1.1);
-    box-shadow: 0 5px 20px rgba(212, 165, 165, 0.3);
-}
-
-.theme-toggle .sun {
-    transition: all 0.3s;
-}
-
-.theme-toggle .moon {
-    transition: all 0.3s;
-    opacity: 0.3;
 }
 
 /* Dark Mode Styles */
@@ -733,8 +907,7 @@ body.dark-mode .calculator-container {
     border-color: rgba(201, 160, 220, 0.3);
 }
 
-body.dark-mode .result-card,
-body.dark-mode .calc-result-card {
+body.dark-mode .result-card {
     background: linear-gradient(135deg, rgba(45, 35, 55, 0.95) 0%, rgba(35, 25, 45, 0.95) 100%);
     border-color: rgba(201, 160, 220, 0.3);
 }
@@ -791,6 +964,11 @@ body.dark-mode #chartContainer {
     border-color: rgba(201, 160, 220, 0.3);
 }
 
+body.constellation-mode #chartContainer {
+    background: rgba(30, 35, 55, 0.5);
+    border-color: rgba(138, 43, 226, 0.3);
+}
+
 #stockChart {
     max-height: 300px;
 }
@@ -799,6 +977,11 @@ body.dark-mode #chartContainer {
 @media (max-width: 768px) {
     header h1 {
         font-size: 1.8em;
+    }
+    
+    .constellation-toggle {
+        right: 20px;
+        top: 70px;
     }
     
     .search-box {
@@ -810,6 +993,10 @@ body.dark-mode #chartContainer {
     }
     
     .comparison-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .calculator-inputs {
         grid-template-columns: 1fr;
     }
 }
