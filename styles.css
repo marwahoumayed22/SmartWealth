@@ -48,6 +48,164 @@ body.dark-mode {
     --shadow-color: rgba(0, 0, 0, 0.4);
 }
 
+/* === THÈMES PERSONNALISÉS === */
+
+/* Thème Ocean Bleu */
+body[data-theme="ocean-blue"] {
+    --rose: #7eb3d6;
+    --lavande: #a5c9e8;
+    --peche: #b8d4e8;
+    --creme: #e8f4f8;
+    --vert: #8ebaa8;
+    --text-dark: #2c4f6f;
+    --text-light: #5c7f9f;
+    
+    --bg-gradient-1: #cfe9f3;
+    --bg-gradient-2: #a8d5e8;
+    --bg-gradient-3: #89c4dc;
+    --card-bg: rgba(255, 255, 255, 0.92);
+    --card-secondary: rgba(240, 250, 255, 0.85);
+    --stock-card-bg: linear-gradient(135deg, rgba(232, 244, 248, 0.95), rgba(220, 240, 250, 0.95));
+    --border-color: rgba(126, 179, 214, 0.25);
+    --shadow-color: rgba(126, 179, 214, 0.2);
+}
+
+body[data-theme="ocean-blue"].dark-mode {
+    --rose: #5a8db5;
+    --lavande: #7fa8c8;
+    --bg-gradient-1: #1a2f3f;
+    --bg-gradient-2: #2a4555;
+    --bg-gradient-3: #3a5565;
+    --card-bg: rgba(30, 50, 65, 0.9);
+    --text-dark: #c8dce8;
+    --text-light: #8fafc8;
+}
+
+/* Thème Forêt Verte */
+body[data-theme="forest-green"] {
+    --rose: #88b888;
+    --lavande: #a8c9a8;
+    --peche: #b8d8a8;
+    --creme: #f0f8e8;
+    --vert: #78a878;
+    --text-dark: #2f4f2f;
+    --text-light: #5f7f5f;
+    
+    --bg-gradient-1: #e8f8e8;
+    --bg-gradient-2: #c8e8c8;
+    --bg-gradient-3: #b8d8b8;
+    --card-bg: rgba(255, 255, 255, 0.92);
+    --card-secondary: rgba(240, 250, 240, 0.85);
+    --stock-card-bg: linear-gradient(135deg, rgba(240, 248, 240, 0.95), rgba(230, 245, 230, 0.95));
+    --border-color: rgba(136, 184, 136, 0.25);
+    --shadow-color: rgba(136, 184, 136, 0.2);
+}
+
+body[data-theme="forest-green"].dark-mode {
+    --rose: #68987a;
+    --lavande: #88b898;
+    --bg-gradient-1: #1a2f1f;
+    --bg-gradient-2: #2a4530;
+    --bg-gradient-3: #3a5540;
+    --card-bg: rgba(30, 50, 40, 0.9);
+    --text-dark: #c8e8d8;
+    --text-light: #8fb8a8;
+}
+
+/* Thème Sunset Orange */
+body[data-theme="sunset-orange"] {
+    --rose: #f5a573;
+    --lavande: #f8c291;
+    --peche: #fad7a0;
+    --creme: #fef5e7;
+    --vert: #f1c40f;
+    --text-dark: #6f4e37;
+    --text-light: #9f7e67;
+    
+    --bg-gradient-1: #fef5e7;
+    --bg-gradient-2: #fad7a0;
+    --bg-gradient-3: #f8b88b;
+    --card-bg: rgba(255, 255, 255, 0.92);
+    --card-secondary: rgba(255, 250, 240, 0.85);
+    --stock-card-bg: linear-gradient(135deg, rgba(254, 245, 231, 0.95), rgba(250, 235, 215, 0.95));
+    --border-color: rgba(245, 165, 115, 0.25);
+    --shadow-color: rgba(245, 165, 115, 0.2);
+}
+
+body[data-theme="sunset-orange"].dark-mode {
+    --rose: #c58563;
+    --lavande: #d8a271;
+    --bg-gradient-1: #2f2519;
+    --bg-gradient-2: #4a3828;
+    --bg-gradient-3: #5a4838;
+    --card-bg: rgba(50, 40, 30, 0.9);
+    --text-dark: #f8e8d8;
+    --text-light: #c8b8a8;
+}
+
+/* Thème Lavande Rêve */
+body[data-theme="lavender-dream"] {
+    --rose: #c5a8d6;
+    --lavande: #d5b8e6;
+    --peche: #e5c8f6;
+    --creme: #f5e8ff;
+    --vert: #b5a8c6;
+    --text-dark: #4f3f5f;
+    --text-light: #7f6f8f;
+    
+    --bg-gradient-1: #f5e8ff;
+    --bg-gradient-2: #e5d8f6;
+    --bg-gradient-3: #d5c8e6;
+    --card-bg: rgba(255, 255, 255, 0.92);
+    --card-secondary: rgba(250, 245, 255, 0.85);
+    --stock-card-bg: linear-gradient(135deg, rgba(245, 232, 255, 0.95), rgba(235, 225, 250, 0.95));
+    --border-color: rgba(197, 168, 214, 0.25);
+    --shadow-color: rgba(197, 168, 214, 0.2);
+}
+
+body[data-theme="lavender-dream"].dark-mode {
+    --rose: #9d7bb3;
+    --lavande: #b58bc3;
+    --bg-gradient-1: #2a1f3f;
+    --bg-gradient-2: #3a2f55;
+    --bg-gradient-3: #4a3f65;
+    --card-bg: rgba(40, 30, 55, 0.9);
+    --text-dark: #e8d8f8;
+    --text-light: #b8a8c8;
+}
+
+/* Thème Minimaliste */
+body[data-theme="minimalist"] {
+    --rose: #888888;
+    --lavande: #999999;
+    --peche: #aaaaaa;
+    --creme: #f5f5f5;
+    --vert: #888888;
+    --text-dark: #333333;
+    --text-light: #666666;
+    
+    --bg-gradient-1: #ffffff;
+    --bg-gradient-2: #f8f8f8;
+    --bg-gradient-3: #f0f0f0;
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --card-secondary: rgba(250, 250, 250, 0.9);
+    --stock-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(250, 250, 250, 0.98));
+    --border-color: rgba(136, 136, 136, 0.2);
+    --shadow-color: rgba(0, 0, 0, 0.08);
+}
+
+body[data-theme="minimalist"].dark-mode {
+    --rose: #999999;
+    --lavande: #aaaaaa;
+    --bg-gradient-1: #1a1a1a;
+    --bg-gradient-2: #222222;
+    --bg-gradient-3: #2a2a2a;
+    --card-bg: rgba(30, 30, 30, 0.95);
+    --text-dark: #e0e0e0;
+    --text-light: #a0a0a0;
+    --shadow-color: rgba(0, 0, 0, 0.5);
+}
+
 /* === BODY === */
 body {
     font-family: 'Georgia', serif;
@@ -112,6 +270,33 @@ body {
     padding: 10px 15px;
     border-radius: 25px;
     border: 2px solid var(--border-color);
+}
+
+/* Sélecteur de thème */
+.theme-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card-secondary);
+    padding: 10px 15px;
+    border-radius: 25px;
+    border: 2px solid var(--border-color);
+}
+
+.theme-selector label {
+    font-size: 1.2em;
+}
+
+.theme-dropdown {
+    background: transparent;
+    border: none;
+    color: var(--text-dark);
+    font-family: 'Georgia', serif;
+    font-size: 0.95em;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 5px;
+    outline: none;
 }
 
 .currency-selector label {
@@ -605,6 +790,165 @@ body.dark-mode .toggle-icon {
 
 button, .btn, input, .stock-card, .news-article {
     transition: all 0.3s ease !important;
+}
+
+/* === ALERTES === */
+.alerts-section {
+    position: relative;
+}
+
+.alerts-list {
+    margin-top: 20px;
+}
+
+.alert-card {
+    background: var(--stock-card-bg);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    border-left: 4px solid var(--rose);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.alert-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--shadow-color);
+}
+
+.alert-card.active {
+    border-left-color: var(--vert);
+}
+
+.alert-card.triggered {
+    border-left-color: #f39c12;
+    background: linear-gradient(135deg, rgba(255, 200, 100, 0.15), rgba(255, 220, 150, 0.15));
+}
+
+.alert-info {
+    flex: 1;
+}
+
+.alert-symbol {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: var(--rose);
+    margin-bottom: 5px;
+}
+
+.alert-condition {
+    color: var(--text-dark);
+    font-size: 0.95em;
+    margin-bottom: 3px;
+}
+
+.alert-status {
+    font-size: 0.85em;
+    color: var(--text-light);
+}
+
+.alert-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.alert-actions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+    transition: all 0.3s ease;
+}
+
+.delete-alert-btn {
+    background: linear-gradient(135deg, #e8c1c1, var(--rose));
+    color: white;
+}
+
+.delete-alert-btn:hover {
+    transform: scale(1.05);
+}
+
+/* === MODAL === */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal.show {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    padding: 35px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 50px var(--shadow-color);
+    animation: slideUp 0.3s ease;
+    position: relative;
+}
+
+.modal-content h3 {
+    color: var(--text-dark);
+    margin-bottom: 25px;
+    font-size: 1.8em;
+    font-weight: 300;
+}
+
+.close-modal {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    font-size: 2em;
+    color: var(--text-light);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.close-modal:hover {
+    color: var(--rose);
+    transform: rotate(90deg);
+}
+
+.alert-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 /* Animations pour les notifications */
