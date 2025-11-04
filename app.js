@@ -32,6 +32,13 @@ const currencySymbols = {
     'CHF': 'Fr'
 };
 
+// Variables pour les thèmes
+let currentTheme = localStorage.getItem('selectedTheme') || 'zen-rose';
+
+// Variables pour les alertes
+let alerts = JSON.parse(localStorage.getItem('alerts')) || [];
+let alertCheckInterval = null;
+
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Application chargée !');
@@ -39,11 +46,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Charger le thème sauvegardé
     loadTheme();
     
+    // Initialiser les thèmes personnalisés
+    initializeThemes();
+    
     // Initialiser la devise
     initializeCurrency();
     
     // Initialiser le rafraîchissement automatique
     initializeAutoRefresh();
+    
+    // Initialiser les alertes
+    initializeAlerts();
     
     // Event listeners
     document.getElementById('searchBtn').addEventListener('click', searchStock);
@@ -57,12 +70,30 @@ document.addEventListener('DOMContentLoaded', function() {
     // Dark mode toggle
     document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
     
+    // Reset theme button
+    document.getElementById('resetThemeBtn').addEventListener('click', resetToSystemTheme);
+    
+    // Theme selector
+    document.getElementById('themeSelect').addEventListener('change', handleThemeChange);
+    
     // Currency selector
     document.getElementById('currencySelect').addEventListener('change', handleCurrencyChange);
     
     // Auto-refresh controls
     document.getElementById('autoRefreshToggle').addEventListener('change', toggleAutoRefresh);
     document.getElementById('refreshInterval').addEventListener('change', updateRefreshInterval);
+    
+    // Alert controls
+    document.getElementById('addAlertBtn').addEventListener('click', openAlertModal);
+    document.getElementById('saveAlertBtn').addEventListener('click', saveAlert);
+    document.querySelector('.close-modal').addEventListener('click', closeAlertModal);
+    
+    // Close modal on outside click
+    document.getElementById('alertModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeAlertModal();
+        }
+    });
     
     // Calculator
     document.getElementById('calculateBtn').addEventListener('click', calculateInvestment);
@@ -72,33 +103,126 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Mettre à jour les taux de change
     updateExchangeRates();
+    
+    // Démarrer la vérification des alertes
+    startAlertChecking();
 });
 
 // === MODE SOMBRE ===
 
-// Charger le thème depuis localStorage
+// Charger le thème depuis localStorage ou détecter les préférences système
 function loadTheme() {
-    const isDarkMode = localStorage.getItem('darkMode') === 'true';
-    if (isDarkMode) {
+    const savedTheme = localStorage.getItem('darkMode');
+    
+    // Si l'utilisateur a déjà fait un choix manuel, l'utiliser
+    if (savedTheme !== null) {
+        const isDarkMode = savedTheme === 'true';
+        if (isDarkMode) {
+            document.body.classList.add('dark-mode');
+        }
+        updateToggleIcon(isDarkMode);
+    } else {
+        // Sinon, détecter les préférences système
+        detectSystemTheme();
+        
+        // Message d'information subtil au premier chargement
+        setTimeout(() => {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const themeType = prefersDark ? 'sombre' : 'clair';
+            console.log(`✨ Thème ${themeType} appliqué automatiquement selon vos préférences système`);
+        }, 1000);
+    }
+    
+    // Écouter les changements de préférences système
+    setupSystemThemeListener();
+}
+
+// Détecter le thème système
+function detectSystemTheme() {
+    const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (prefersDarkMode) {
         document.body.classList.add('dark-mode');
         updateToggleIcon(true);
+        console.log('🌙 Mode sombre détecté automatiquement');
+    } else {
+        updateToggleIcon(false);
+        console.log('☀️ Mode clair détecté automatiquement');
+    }
+}
+
+// Écouter les changements de thème système
+function setupSystemThemeListener() {
+    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    // Fonction pour gérer le changement
+    const handleThemeChange = (e) => {
+        // Ne changer automatiquement que si l'utilisateur n'a pas fait de choix manuel
+        const userPreference = localStorage.getItem('darkMode');
+        
+        if (userPreference === null) {
+            if (e.matches) {
+                document.body.classList.add('dark-mode');
+                updateToggleIcon(true);
+                showNotification('🌙 Passage au mode sombre (système)', 'info');
+            } else {
+                document.body.classList.remove('dark-mode');
+                updateToggleIcon(false);
+                showNotification('☀️ Passage au mode clair (système)', 'info');
+            }
+        }
+    };
+    
+    // Écouter les changements (pour les navigateurs modernes)
+    if (darkModeMediaQuery.addEventListener) {
+        darkModeMediaQuery.addEventListener('change', handleThemeChange);
+    } else {
+        // Fallback pour les anciens navigateurs
+        darkModeMediaQuery.addListener(handleThemeChange);
     }
 }
 
 // Basculer entre mode clair et sombre
 function toggleDarkMode() {
     const isDarkMode = document.body.classList.toggle('dark-mode');
+    
+    // Sauvegarder le choix manuel de l'utilisateur
     localStorage.setItem('darkMode', isDarkMode);
     updateToggleIcon(isDarkMode);
     
     // Animation douce
     document.body.style.transition = 'all 0.5s ease';
+    
+    // Notification avec indication du choix manuel
+    const message = isDarkMode ? '🌙 Mode sombre activé' : '☀️ Mode clair activé';
+    showNotification(message, 'success');
+}
+
+// Réinitialiser aux préférences système
+function resetToSystemTheme() {
+    localStorage.removeItem('darkMode');
+    detectSystemTheme();
+    showNotification('🔄 Thème réinitialisé aux préférences système', 'info');
 }
 
 // Mettre à jour l'icône du bouton
 function updateToggleIcon(isDarkMode) {
     const toggleIcon = document.querySelector('.toggle-icon');
     toggleIcon.textContent = isDarkMode ? '☀️' : '🌙';
+    
+    // Indicateur visuel si le thème suit le système
+    const resetBtn = document.getElementById('resetThemeBtn');
+    const isFollowingSystem = localStorage.getItem('darkMode') === null;
+    
+    if (resetBtn) {
+        if (isFollowingSystem) {
+            resetBtn.style.opacity = '0.5';
+            resetBtn.title = 'Suit actuellement les préférences système';
+        } else {
+            resetBtn.style.opacity = '1';
+            resetBtn.title = 'Réinitialiser aux préférences système';
+        }
+    }
 }
 
 // === CONVERSION DE DEVISES ===
@@ -177,6 +301,42 @@ async function updateExchangeRates() {
     } catch (error) {
         console.log('ℹ️ Utilisation des taux de change par défaut');
     }
+}
+
+// === THÈMES PERSONNALISÉS ===
+
+// Initialiser le sélecteur de thème
+function initializeThemes() {
+    const themeSelect = document.getElementById('themeSelect');
+    themeSelect.value = currentTheme;
+    applyTheme(currentTheme);
+}
+
+// Gérer le changement de thème
+function handleThemeChange(event) {
+    const newTheme = event.target.value;
+    currentTheme = newTheme;
+    localStorage.setItem('selectedTheme', newTheme);
+    applyTheme(newTheme);
+    
+    const themeNames = {
+        'zen-rose': 'Zen Rose',
+        'ocean-blue': 'Ocean Bleu',
+        'forest-green': 'Forêt Verte',
+        'sunset-orange': 'Sunset Orange',
+        'lavender-dream': 'Lavande Rêve',
+        'minimalist': 'Minimaliste'
+    };
+    
+    showNotification(`🎨 Thème ${themeNames[newTheme]} appliqué`, 'success');
+}
+
+// Appliquer un thème
+function applyTheme(themeName) {
+    document.body.setAttribute('data-theme', themeName);
+    
+    // Animation fluide
+    document.body.style.transition = 'all 0.5s ease';
 }
 
 // === RAFRAÎCHISSEMENT AUTOMATIQUE ===
@@ -273,18 +433,34 @@ function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
+    
+    let bgColor;
+    switch(type) {
+        case 'success':
+            bgColor = 'var(--vert)';
+            break;
+        case 'error':
+            bgColor = 'var(--rose)';
+            break;
+        case 'info':
+        default:
+            bgColor = 'var(--lavande)';
+    }
+    
     notification.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
         padding: 15px 25px;
-        background: ${type === 'success' ? 'var(--vert)' : 'var(--lavande)'};
+        background: ${bgColor};
         color: white;
         border-radius: 12px;
         box-shadow: 0 4px 20px var(--shadow-color);
         z-index: 1000;
         animation: slideIn 0.3s ease;
         font-family: Georgia, serif;
+        max-width: 400px;
+        word-wrap: break-word;
     `;
     
     document.body.appendChild(notification);
@@ -292,7 +468,7 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    }, 4000);
 }
 
 // Fonction principale de recherche
@@ -805,6 +981,237 @@ async function calculateInvestment() {
     } catch (error) {
         resultsContainer.innerHTML = '<div class="error-message">💭 Impossible de calculer. Vérifiez le symbole et réessayez.</div>';
         console.error(error);
+    }
+}
+
+// === SYSTÈME D'ALERTES ===
+
+// Initialiser les alertes
+function initializeAlerts() {
+    displayAlerts();
+}
+
+// Afficher les alertes
+function displayAlerts() {
+    const container = document.getElementById('alertsList');
+    
+    if (alerts.length === 0) {
+        container.innerHTML = '<p class="empty-state">Aucune alerte configurée. Créez votre première alerte ✨</p>';
+        return;
+    }
+    
+    let alertsHTML = '';
+    
+    alerts.forEach((alert, index) => {
+        const statusClass = alert.triggered ? 'triggered' : 'active';
+        const statusText = alert.triggered ? '🔔 Déclenchée !' : '✅ Active';
+        
+        const conditionText = getAlertConditionText(alert);
+        
+        alertsHTML += `
+            <div class="alert-card ${statusClass}">
+                <div class="alert-info">
+                    <div class="alert-symbol">${alert.symbol}</div>
+                    <div class="alert-condition">${conditionText}</div>
+                    <div class="alert-status">${statusText}</div>
+                </div>
+                <div class="alert-actions">
+                    <button class="delete-alert-btn" onclick="deleteAlert(${index})">
+                        🗑️ Supprimer
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = alertsHTML;
+}
+
+// Obtenir le texte de condition de l'alerte
+function getAlertConditionText(alert) {
+    const symbol = getCurrencySymbol();
+    
+    switch(alert.type) {
+        case 'price-above':
+            return `Alerte quand le prix monte au-dessus de ${symbol}${alert.value}`;
+        case 'price-below':
+            return `Alerte quand le prix descend en-dessous de ${symbol}${alert.value}`;
+        case 'change-positive':
+            return `Alerte pour une hausse de +${alert.value}%`;
+        case 'change-negative':
+            return `Alerte pour une baisse de -${alert.value}%`;
+        case 'volume-spike':
+            return `Alerte pour un volume inhabituel`;
+        default:
+            return 'Condition inconnue';
+    }
+}
+
+// Ouvrir le modal d'alerte
+function openAlertModal() {
+    const modal = document.getElementById('alertModal');
+    modal.classList.add('show');
+    
+    // Réinitialiser le formulaire
+    document.getElementById('alertSymbol').value = '';
+    document.getElementById('alertType').value = 'price-above';
+    document.getElementById('alertValue').value = '';
+    
+    updateAlertValueVisibility();
+}
+
+// Fermer le modal d'alerte
+function closeAlertModal() {
+    const modal = document.getElementById('alertModal');
+    modal.classList.remove('show');
+}
+
+// Mettre à jour la visibilité du champ de valeur
+function updateAlertValueVisibility() {
+    const alertType = document.getElementById('alertType').value;
+    const valueGroup = document.getElementById('alertValueGroup');
+    
+    if (alertType === 'volume-spike') {
+        valueGroup.style.display = 'none';
+    } else {
+        valueGroup.style.display = 'flex';
+    }
+}
+
+// Écouter les changements de type d'alerte
+document.addEventListener('DOMContentLoaded', function() {
+    const alertTypeSelect = document.getElementById('alertType');
+    if (alertTypeSelect) {
+        alertTypeSelect.addEventListener('change', updateAlertValueVisibility);
+    }
+});
+
+// Sauvegarder une alerte
+function saveAlert() {
+    const symbol = document.getElementById('alertSymbol').value.trim().toUpperCase();
+    const type = document.getElementById('alertType').value;
+    const value = parseFloat(document.getElementById('alertValue').value);
+    
+    // Validation
+    if (!symbol) {
+        showNotification('❌ Veuillez entrer un symbole d\'action', 'error');
+        return;
+    }
+    
+    if (type !== 'volume-spike' && (!value || value <= 0)) {
+        showNotification('❌ Veuillez entrer une valeur valide', 'error');
+        return;
+    }
+    
+    // Créer l'alerte
+    const newAlert = {
+        id: Date.now(),
+        symbol: symbol,
+        type: type,
+        value: value || null,
+        triggered: false,
+        createdAt: new Date().toISOString()
+    };
+    
+    alerts.push(newAlert);
+    localStorage.setItem('alerts', JSON.stringify(alerts));
+    
+    displayAlerts();
+    closeAlertModal();
+    
+    showNotification(`🔔 Alerte créée pour ${symbol}`, 'success');
+}
+
+// Supprimer une alerte
+function deleteAlert(index) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette alerte ?')) {
+        alerts.splice(index, 1);
+        localStorage.setItem('alerts', JSON.stringify(alerts));
+        displayAlerts();
+        showNotification('🗑️ Alerte supprimée', 'info');
+    }
+}
+
+// Vérifier les alertes
+async function checkAlerts() {
+    if (alerts.length === 0) return;
+    
+    for (let i = 0; i < alerts.length; i++) {
+        const alert = alerts[i];
+        
+        if (alert.triggered) continue; // Skip already triggered alerts
+        
+        try {
+            const stockData = await fetchStockData(alert.symbol);
+            const currentPrice = convertCurrency(stockData.price);
+            const changePercent = parseFloat(stockData.changePercent.replace('%', ''));
+            
+            let shouldTrigger = false;
+            
+            switch(alert.type) {
+                case 'price-above':
+                    shouldTrigger = currentPrice >= alert.value;
+                    break;
+                case 'price-below':
+                    shouldTrigger = currentPrice <= alert.value;
+                    break;
+                case 'change-positive':
+                    shouldTrigger = changePercent >= alert.value;
+                    break;
+                case 'change-negative':
+                    shouldTrigger = changePercent <= -alert.value;
+                    break;
+                case 'volume-spike':
+                    // Simple heuristic: volume is unusually high
+                    shouldTrigger = stockData.volume > stockData.previousClose * 1.5;
+                    break;
+            }
+            
+            if (shouldTrigger) {
+                alert.triggered = true;
+                localStorage.setItem('alerts', JSON.stringify(alerts));
+                
+                const symbol = getCurrencySymbol();
+                const message = `🔔 ALERTE: ${alert.symbol} - ${getAlertConditionText(alert)}. Prix actuel: ${symbol}${currentPrice.toFixed(2)}`;
+                
+                showNotification(message, 'success');
+                displayAlerts();
+                
+                // Play sound or show browser notification if supported
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification(`Alerte ${alert.symbol}`, {
+                        body: message,
+                        icon: '🔔'
+                    });
+                }
+            }
+        } catch (error) {
+            console.error(`Erreur lors de la vérification de l'alerte pour ${alert.symbol}:`, error);
+        }
+    }
+}
+
+// Démarrer la vérification périodique des alertes
+function startAlertChecking() {
+    // Vérifier toutes les 60 secondes
+    alertCheckInterval = setInterval(() => {
+        checkAlerts();
+    }, 60000);
+    
+    // Première vérification immédiate
+    checkAlerts();
+    
+    // Demander la permission pour les notifications
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+
+// Arrêter la vérification des alertes
+function stopAlertChecking() {
+    if (alertCheckInterval) {
+        clearInterval(alertCheckInterval);
+        alertCheckInterval = null;
     }
 }
 
