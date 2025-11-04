@@ -434,6 +434,7 @@ async function displayPortfolio() {
     
     for (const symbol of portfolio) {
         try {
+            // Essayer de récupérer les vraies données
             const stockData = await fetchStockData(symbol);
             const isPositive = stockData.change >= 0;
             
@@ -461,7 +462,38 @@ async function displayPortfolio() {
                 </div>
             `;
         } catch (error) {
-            console.error(`Erreur pour ${symbol}:`, error);
+            // Si l'API ne marche pas, afficher avec des données de démo
+            console.error(`Erreur pour ${symbol}, utilisation des données de démo:`, error);
+            
+            const basePrice = 150 + Math.random() * 100;
+            const change = (Math.random() - 0.5) * 5;
+            const changePercent = ((change / basePrice) * 100).toFixed(2) + '%';
+            const isPositive = change >= 0;
+            
+            portfolioHTML += `
+                <div class="stock-card">
+                    <div class="stock-header">
+                        <div>
+                            <div class="stock-symbol">${symbol}</div>
+                            <div class="stock-name" style="font-size: 0.75em; color: #c9a0dc;">💡 Données démo</div>
+                        </div>
+                        <div class="stock-price">$${basePrice.toFixed(2)}</div>
+                    </div>
+                    
+                    <div class="stock-change ${isPositive ? 'positive' : 'negative'}">
+                        ${isPositive ? '↑' : '↓'} ${Math.abs(change).toFixed(2)} (${changePercent})
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="remove-btn" onclick="removeFromPortfolio('${symbol}')">
+                            ❌ Retirer
+                        </button>
+                        <button class="compare-btn" onclick="addToComparison('${symbol}')">
+                            🔍 Comparer
+                        </button>
+                    </div>
+                </div>
+            `;
         }
     }
     
@@ -981,6 +1013,34 @@ function createDemoChart(symbol) {
         const price = i === 29 ? basePrice : prices[prices.length - 1] + variation;
         prices.push(Math.max(price, basePrice * 0.8));
     }
+    
+    createChart(symbol, dates, prices);
+    
+    const note = document.createElement('p');
+    note.style.cssText = 'text-align: center; color: #8b7d8b; font-size: 0.85em; margin-top: 10px; font-style: italic;';
+    note.textContent = '💡 Données illustratives pour démonstration';
+    document.getElementById('chartContainer').appendChild(note);
+}
+
+// ===== THEME TOGGLE =====
+function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    
+    const toggleBtn = document.getElementById('themeToggle');
+    toggleBtn.style.transform = 'rotate(360deg)';
+    setTimeout(() => {
+        toggleBtn.style.transform = 'rotate(0deg)';
+    }, 400);
+}
+
+function loadTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+}
     
     createChart(symbol, dates, prices);
     
