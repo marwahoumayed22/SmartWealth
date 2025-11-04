@@ -4,51 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>✨ Mon Espace Finance Zen</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
+            <button id="themeToggle" class="theme-toggle" aria-label="Changer de thème">
+                <span class="sun">☀️</span>
+                <span class="moon">🌙</span>
+            </button>
             <h1>✨ Mon Espace Finance Zen ✨</h1>
             <p class="subtitle">Investissez avec sérénité et élégance</p>
-            
-            <div class="header-controls">
-                <!-- Sélecteur de devise -->
-                <div class="currency-selector">
-                    <label for="currencySelect">💱</label>
-                    <select id="currencySelect" class="currency-dropdown">
-                        <option value="USD">USD ($)</option>
-                        <option value="EUR">EUR (€)</option>
-                        <option value="CAD">CAD ($)</option>
-                        <option value="GBP">GBP (£)</option>
-                        <option value="JPY">JPY (¥)</option>
-                        <option value="CHF">CHF (Fr)</option>
-                    </select>
-                </div>
-                
-                <!-- Contrôle de rafraîchissement -->
-                <div class="auto-refresh-control">
-                    <label class="refresh-toggle">
-                        <input type="checkbox" id="autoRefreshToggle">
-                        <span class="refresh-label">🔄 Auto-refresh</span>
-                    </label>
-                    <select id="refreshInterval" class="refresh-dropdown" disabled>
-                        <option value="30">30s</option>
-                        <option value="60" selected>1min</option>
-                        <option value="120">2min</option>
-                        <option value="300">5min</option>
-                    </select>
-                </div>
-                
-                <!-- Mode sombre -->
-                <button id="darkModeToggle" class="dark-mode-toggle" aria-label="Basculer le mode sombre">
-                    <span class="toggle-icon">🌙</span>
-                </button>
-                
-                <button id="resetThemeBtn" class="reset-theme-btn" aria-label="Réinitialiser au thème système" title="Suivre les préférences système">
-                    🔄
-                </button>
-            </div>
         </header>
 
         <main>
@@ -64,6 +30,10 @@
                     <button id="searchBtn">Rechercher</button>
                 </div>
                 <div id="searchResults"></div>
+                <div id="chartContainer" style="display: none;">
+                    <h3 style="color: #8b6f8b; margin: 20px 0 10px 0; font-weight: 300;">📈 Évolution du Prix</h3>
+                    <canvas id="stockChart"></canvas>
+                </div>
             </section>
 
             <!-- Calculateur d'investissement -->
@@ -112,6 +82,7 @@
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
