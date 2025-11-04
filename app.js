@@ -7,6 +7,13 @@ const API_BASE = 'https://www.alphavantage.co/query';
 let portfolio = JSON.parse(localStorage.getItem('portfolio')) || [];
 let comparisonList = [];
 
+// Variables pour le mode constellation
+let constellationMode = false;
+let canvas, ctx;
+let stars = [];
+let mouseX = 0, mouseY = 0;
+let animationId = null;
+
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Application chargée !');
@@ -27,9 +34,233 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
     loadTheme();
     
+    // Constellation Toggle
+    document.getElementById('constellationToggle').addEventListener('click', toggleConstellation);
+    initConstellation();
+    
     // Charger le portefeuille existant
     displayPortfolio();
 });
+
+// ===== MODE CONSTELLATION =====
+
+function initConstellation() {
+    canvas = document.getElementById('constellationCanvas');
+    ctx = canvas.getContext('2d');
+    
+    // Ajuster la taille du canvas
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Suivre la souris
+    canvas.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
+    
+    // Créer les étoiles initiales
+    createStars(150);
+}
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
+function createStars(count) {
+    stars = [];
+    for (let i = 0; i < count; i++) {
+        stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 0.5,
+            speedX: (Math.random() - 0.5) * 0.3,
+            speedY: (Math.random() - 0.5) * 0.3,
+            opacity: Math.random() * 0.5 + 0.5,
+            twinkleSpeed: Math.random() * 0.02 + 0.01,
+            isStock: false
+        });
+    }
+    
+    // Ajouter des étoiles pour le portefeuille
+    addPortfolioStars();
+}
+
+function addPortfolioStars() {
+    // Créer des étoiles spéciales pour chaque action du portefeuille
+    portfolio.forEach((symbol, index) => {
+        const angle = (index / portfolio.length) * Math.PI * 2;
+        const radius = Math.min(canvas.width, canvas.height) * 0.25;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        
+        stars.push({
+            x: centerX + Math.cos(angle) * radius,
+            y: centerY + Math.sin(angle) * radius,
+            size: 5 + Math.random() * 3,
+            speedX: 0,
+            speedY: 0,
+            opacity: 1,
+            twinkleSpeed: 0.02,
+            isStock: true,
+            symbol: symbol,
+            color: `hsl(${(index * 360) / portfolio.length}, 70%, 60%)`,
+            targetX: centerX + Math.cos(angle + 0.001) * radius,
+            targetY: centerY + Math.sin(angle + 0.001) * radius,
+            orbitSpeed: 0.0005
+        });
+    });
+}
+
+function animateConstellation() {
+    if (!constellationMode) return;
+    
+    // Fond sombre avec traînée
+    ctx.fillStyle = 'rgba(10, 14, 39, 0.1)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Mettre à jour et dessiner les étoiles
+    stars.forEach((star, index) => {
+        if (star.isStock) {
+            // Étoiles du portefeuille - orbite circulaire
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const angle = Math.atan2(star.y - centerY, star.x - centerX);
+            const radius = Math.sqrt(Math.pow(star.x - centerX, 2) + Math.pow(star.y - centerY, 2));
+            
+            const newAngle = angle + star.orbitSpeed;
+            star.x = centerX + Math.cos(newAngle) * radius;
+            star.y = centerY + Math.sin(newAngle) * radius;
+            
+            // Effet de souris - attraction
+            const dx = mouseX - star.x;
+            const dy = mouseY - star.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 150) {
+                star.x += dx * 0.01;
+                star.y += dy * 0.01;
+            }
+            
+            // Dessiner l'étoile du portefeuille (plus grande et colorée)
+            ctx.save();
+            
+            // Halo
+            const gradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 4);
+            gradient.addColorStop(0, star.color + 'aa');
+            gradient.addColorStop(1, star.color + '00');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.size * 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Étoile principale
+            ctx.fillStyle = star.color;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = star.color;
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Symbole de l'action
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Georgia';
+            ctx.textAlign = 'center';
+            ctx.fillText(star.symbol, star.x, star.y - star.size - 10);
+            
+            ctx.restore();
+            
+        } else {
+            // Étoiles normales
+            star.x += star.speedX;
+            star.y += star.speedY;
+            
+            // Rebond sur les bords
+            if (star.x < 0 || star.x > canvas.width) star.speedX *= -1;
+            if (star.y < 0 || star.y > canvas.height) star.speedY *= -1;
+            
+            // Effet de scintillement
+            star.opacity += star.twinkleSpeed;
+            if (star.opacity >= 1 || star.opacity <= 0.3) {
+                star.twinkleSpeed *= -1;
+            }
+            
+            // Dessiner l'étoile normale
+            ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+    
+    // Connecter les étoiles du portefeuille entre elles
+    const stockStars = stars.filter(s => s.isStock);
+    for (let i = 0; i < stockStars.length; i++) {
+        for (let j = i + 1; j < stockStars.length; j++) {
+            const dx = stockStars[i].x - stockStars[j].x;
+            const dy = stockStars[i].y - stockStars[j].y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 400) {
+                const opacity = (1 - distance / 400) * 0.3;
+                ctx.strokeStyle = `rgba(157, 123, 179, ${opacity})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(stockStars[i].x, stockStars[i].y);
+                ctx.lineTo(stockStars[j].x, stockStars[j].y);
+                ctx.stroke();
+            }
+        }
+    }
+    
+    // Connecter les étoiles normales proches
+    for (let i = 0; i < stars.length - 1; i++) {
+        if (stars[i].isStock) continue;
+        
+        for (let j = i + 1; j < stars.length; j++) {
+            if (stars[j].isStock) continue;
+            
+            const dx = stars[i].x - stars[j].x;
+            const dy = stars[i].y - stars[j].y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 100) {
+                const opacity = (1 - distance / 100) * 0.15;
+                ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(stars[i].x, stars[i].y);
+                ctx.lineTo(stars[j].x, stars[j].y);
+                ctx.stroke();
+            }
+        }
+    }
+    
+    animationId = requestAnimationFrame(animateConstellation);
+}
+
+function toggleConstellation() {
+    constellationMode = !constellationMode;
+    
+    if (constellationMode) {
+        document.body.classList.add('constellation-mode');
+        createStars(150); // Recréer les étoiles avec le portefeuille actuel
+        animateConstellation();
+        console.log('🌌 Mode Constellation activé');
+    } else {
+        document.body.classList.remove('constellation-mode');
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        // Nettoyer le canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        console.log('✨ Mode Normal activé');
+    }
+}
+
+// ===== FIN MODE CONSTELLATION =====
 
 // Fonction principale de recherche
 async function searchStock() {
@@ -60,7 +291,6 @@ async function searchStock() {
 
 // Récupérer les données d'une action
 async function fetchStockData(symbol) {
-    // Quote endpoint pour les données en temps réel
     const quoteUrl = `${API_BASE}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${API_KEY}`;
     
     const response = await fetch(quoteUrl);
@@ -71,7 +301,7 @@ async function fetchStockData(symbol) {
         
         return {
             symbol: symbol,
-            name: symbol, // L'API gratuite ne donne pas toujours le nom complet
+            name: symbol,
             price: parseFloat(quote['05. price']),
             change: parseFloat(quote['09. change']),
             changePercent: quote['10. change percent'],
@@ -141,7 +371,6 @@ function displayStockCard(stock, containerId) {
 function displayDemoStock(symbol) {
     const container = document.getElementById('searchResults');
     
-    // Données de démo réalistes
     const basePrice = 150 + Math.random() * 100;
     const change = (Math.random() - 0.5) * 5;
     const changePercent = ((change / basePrice) * 100).toFixed(2) + '%';
@@ -161,13 +390,11 @@ function displayDemoStock(symbol) {
     
     displayStockCard(stock, 'searchResults');
     
-    // Ajouter une note
     const note = document.createElement('div');
     note.style.cssText = 'background: rgba(201, 160, 220, 0.1); padding: 15px; border-radius: 12px; margin-top: 15px; border-left: 3px solid #c9a0dc;';
     note.innerHTML = '<small style="color: #8b7d8b;">💡 <em>Données de démonstration (API limitée). Obtenez votre clé gratuite sur alphavantage.co</em></small>';
     container.appendChild(note);
     
-    // Charger quand même les news et le graphique de démo
     displayGenericNews(symbol);
     createDemoChart(symbol);
     document.getElementById('chartContainer').style.display = 'block';
@@ -183,6 +410,12 @@ async function addToPortfolio(symbol) {
     portfolio.push(symbol);
     localStorage.setItem('portfolio', JSON.stringify(portfolio));
     displayPortfolio();
+    
+    // Mettre à jour les étoiles du mode constellation
+    if (constellationMode) {
+        createStars(150);
+    }
+    
     alert(`✅ ${symbol} ajouté au portefeuille !`);
 }
 
@@ -240,6 +473,11 @@ function removeFromPortfolio(symbol) {
     portfolio = portfolio.filter(s => s !== symbol);
     localStorage.setItem('portfolio', JSON.stringify(portfolio));
     displayPortfolio();
+    
+    // Mettre à jour les étoiles du mode constellation
+    if (constellationMode) {
+        createStars(150);
+    }
 }
 
 // Effacer tout le portefeuille
@@ -248,6 +486,11 @@ function clearPortfolio() {
         portfolio = [];
         localStorage.setItem('portfolio', JSON.stringify(portfolio));
         displayPortfolio();
+        
+        // Mettre à jour les étoiles du mode constellation
+        if (constellationMode) {
+            createStars(150);
+        }
     }
 }
 
@@ -337,13 +580,11 @@ function removeFromComparison(symbol) {
 async function fetchStockNews(symbol) {
     const newsContainer = document.querySelector('.news-container');
     
-    // Afficher un état de chargement
     newsContainer.innerHTML = `
         <div class="loading">✨ Chargement des actualités pour ${symbol}...</div>
     `;
     
     try {
-        // Alpha Vantage a un endpoint pour les news
         const newsUrl = `${API_BASE}?function=NEWS_SENTIMENT&tickers=${symbol}&apikey=${API_KEY}&limit=6`;
         
         const response = await fetch(newsUrl);
@@ -352,7 +593,6 @@ async function fetchStockNews(symbol) {
         if (data.feed && data.feed.length > 0) {
             displayNews(symbol, data.feed);
         } else {
-            // Si pas de résultats avec Alpha Vantage, utiliser des news génériques
             displayGenericNews(symbol);
         }
     } catch (error) {
@@ -373,14 +613,13 @@ function displayNews(symbol, newsItems) {
     `;
     
     newsItems.forEach((article, index) => {
-        if (index < 6) { // Limiter à 6 articles
+        if (index < 6) {
             const title = article.title || 'Article sans titre';
             const summary = article.summary || 'Aucun résumé disponible';
             const source = article.source || 'Source inconnue';
             const timePublished = article.time_published || '';
             const url = article.url || '#';
             
-            // Analyser le sentiment si disponible
             let sentimentClass = 'sentiment-neutral';
             let sentimentText = 'Neutre';
             
@@ -395,7 +634,6 @@ function displayNews(symbol, newsItems) {
                 }
             }
             
-            // Formater la date
             let timeAgo = 'Récent';
             if (timePublished) {
                 const date = new Date(
@@ -512,7 +750,6 @@ async function calculateInvestment() {
     const shares = parseInt(document.getElementById('calcShares').value);
     const resultsContainer = document.getElementById('calculatorResults');
     
-    // Validation
     if (!symbol) {
         resultsContainer.innerHTML = '<div class="error-message">💭 Veuillez entrer un symbole d\'action</div>';
         return;
@@ -533,7 +770,6 @@ async function calculateInvestment() {
         const avgDailyChange = Math.abs(stockData.change);
         const potentialDailyVariation = avgDailyChange * shares;
         
-        // Calcul du pourcentage de changement
         const changePercent = parseFloat(stockData.changePercent.replace('%', ''));
         const isPositive = changePercent >= 0;
         
@@ -614,7 +850,6 @@ async function fetchAndDisplayChart(symbol) {
     chartContainer.style.display = 'block';
     
     try {
-        // Récupérer les données historiques (TIME_SERIES_DAILY)
         const chartUrl = `${API_BASE}?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`;
         const response = await fetch(chartUrl);
         const data = await response.json();
@@ -622,12 +857,10 @@ async function fetchAndDisplayChart(symbol) {
         const timeSeries = data['Time Series (Daily)'];
         
         if (!timeSeries) {
-            // Si pas de données, créer un graphique de démonstration
             createDemoChart(symbol);
             return;
         }
         
-        // Extraire les 30 derniers jours
         const dates = Object.keys(timeSeries).slice(0, 30).reverse();
         const prices = dates.map(date => parseFloat(timeSeries[date]['4. close']));
         
@@ -642,30 +875,25 @@ async function fetchAndDisplayChart(symbol) {
 function createChart(symbol, dates, prices) {
     const ctx = document.getElementById('stockChart').getContext('2d');
     
-    // Détruire l'ancien graphique s'il existe
     if (stockChart) {
         stockChart.destroy();
     }
     
-    // Déterminer la couleur selon la tendance
     const isPositive = prices[prices.length - 1] > prices[0];
     const lineColor = isPositive ? '#a8c9a8' : '#e8c1c1';
     const gradientColor = isPositive ? 
         'rgba(168, 201, 168, 0.2)' : 
         'rgba(232, 193, 193, 0.2)';
     
-    // Créer le dégradé
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
     gradient.addColorStop(0, gradientColor);
     gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
     
-    // Formater les dates
     const formattedDates = dates.map(date => {
         const d = new Date(date);
         return `${d.getDate()}/${d.getMonth() + 1}`;
     });
     
-    // Créer le graphique
     stockChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -739,7 +967,6 @@ function createChart(symbol, dates, prices) {
 }
 
 function createDemoChart(symbol) {
-    // Créer des données de démo si l'API ne fonctionne pas
     const today = new Date();
     const dates = [];
     const basePrice = 150 + Math.random() * 100;
@@ -750,15 +977,13 @@ function createDemoChart(symbol) {
         date.setDate(date.getDate() - i);
         dates.push(date.toISOString().split('T')[0]);
         
-        // Générer un prix avec variation
         const variation = (Math.random() - 0.5) * 10;
         const price = i === 29 ? basePrice : prices[prices.length - 1] + variation;
-        prices.push(Math.max(price, basePrice * 0.8)); // Éviter les prix trop bas
+        prices.push(Math.max(price, basePrice * 0.8));
     }
     
     createChart(symbol, dates, prices);
     
-    // Ajouter une note
     const note = document.createElement('p');
     note.style.cssText = 'text-align: center; color: #8b7d8b; font-size: 0.85em; margin-top: 10px; font-style: italic;';
     note.textContent = '💡 Données illustratives pour démonstration';
@@ -771,7 +996,6 @@ function toggleTheme() {
     const isDark = document.body.classList.contains('dark-mode');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
     
-    // Animation du bouton
     const toggleBtn = document.getElementById('themeToggle');
     toggleBtn.style.transform = 'rotate(360deg)';
     setTimeout(() => {
