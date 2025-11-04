@@ -7,56 +7,9 @@ const API_BASE = 'https://www.alphavantage.co/query';
 let portfolio = JSON.parse(localStorage.getItem('portfolio')) || [];
 let comparisonList = [];
 
-// Variables pour le rafraîchissement automatique
-let autoRefreshInterval = null;
-let isAutoRefreshEnabled = false;
-
-// Variables pour la conversion de devise
-let currentCurrency = localStorage.getItem('selectedCurrency') || 'USD';
-let exchangeRates = {
-    'USD': 1,
-    'EUR': 0.92,
-    'CAD': 1.36,
-    'GBP': 0.79,
-    'JPY': 149.50,
-    'CHF': 0.88
-};
-
-// Symboles de devises
-const currencySymbols = {
-    'USD': '$',
-    'EUR': '€',
-    'CAD': '$',
-    'GBP': '£',
-    'JPY': '¥',
-    'CHF': 'Fr'
-};
-
-// Variables pour les thèmes
-let currentTheme = localStorage.getItem('selectedTheme') || 'zen-rose';
-
-// Variables pour les alertes
-let alerts = JSON.parse(localStorage.getItem('alerts')) || [];
-let alertCheckInterval = null;
-
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Application chargée !');
-    
-    // Charger le thème sauvegardé
-    loadTheme();
-    
-    // Initialiser les thèmes personnalisés
-    initializeThemes();
-    
-    // Initialiser la devise
-    initializeCurrency();
-    
-    // Initialiser le rafraîchissement automatique
-    initializeAutoRefresh();
-    
-    // Initialiser les alertes
-    initializeAlerts();
     
     // Event listeners
     document.getElementById('searchBtn').addEventListener('click', searchStock);
@@ -67,409 +20,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.getElementById('clearPortfolioBtn').addEventListener('click', clearPortfolio);
     
-    // Dark mode toggle
-    document.getElementById('darkModeToggle').addEventListener('click', toggleDarkMode);
-    
-    // Reset theme button
-    document.getElementById('resetThemeBtn').addEventListener('click', resetToSystemTheme);
-    
-    // Theme selector
-    document.getElementById('themeSelect').addEventListener('change', handleThemeChange);
-    
-    // Currency selector
-    document.getElementById('currencySelect').addEventListener('change', handleCurrencyChange);
-    
-    // Auto-refresh controls
-    document.getElementById('autoRefreshToggle').addEventListener('change', toggleAutoRefresh);
-    document.getElementById('refreshInterval').addEventListener('change', updateRefreshInterval);
-    
-    // Alert controls
-    document.getElementById('addAlertBtn').addEventListener('click', openAlertModal);
-    document.getElementById('saveAlertBtn').addEventListener('click', saveAlert);
-    document.querySelector('.close-modal').addEventListener('click', closeAlertModal);
-    
-    // Close modal on outside click
-    document.getElementById('alertModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeAlertModal();
-        }
-    });
-    
     // Calculator
     document.getElementById('calculateBtn').addEventListener('click', calculateInvestment);
     
+    // Theme Toggle
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    loadTheme();
+    
     // Charger le portefeuille existant
     displayPortfolio();
-    
-    // Mettre à jour les taux de change
-    updateExchangeRates();
-    
-    // Démarrer la vérification des alertes
-    startAlertChecking();
 });
-
-// === MODE SOMBRE ===
-
-// Charger le thème depuis localStorage ou détecter les préférences système
-function loadTheme() {
-    const savedTheme = localStorage.getItem('darkMode');
-    
-    // Si l'utilisateur a déjà fait un choix manuel, l'utiliser
-    if (savedTheme !== null) {
-        const isDarkMode = savedTheme === 'true';
-        if (isDarkMode) {
-            document.body.classList.add('dark-mode');
-        }
-        updateToggleIcon(isDarkMode);
-    } else {
-        // Sinon, détecter les préférences système
-        detectSystemTheme();
-        
-        // Message d'information subtil au premier chargement
-        setTimeout(() => {
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const themeType = prefersDark ? 'sombre' : 'clair';
-            console.log(`✨ Thème ${themeType} appliqué automatiquement selon vos préférences système`);
-        }, 1000);
-    }
-    
-    // Écouter les changements de préférences système
-    setupSystemThemeListener();
-}
-
-// Détecter le thème système
-function detectSystemTheme() {
-    const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    if (prefersDarkMode) {
-        document.body.classList.add('dark-mode');
-        updateToggleIcon(true);
-        console.log('🌙 Mode sombre détecté automatiquement');
-    } else {
-        updateToggleIcon(false);
-        console.log('☀️ Mode clair détecté automatiquement');
-    }
-}
-
-// Écouter les changements de thème système
-function setupSystemThemeListener() {
-    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    // Fonction pour gérer le changement
-    const handleThemeChange = (e) => {
-        // Ne changer automatiquement que si l'utilisateur n'a pas fait de choix manuel
-        const userPreference = localStorage.getItem('darkMode');
-        
-        if (userPreference === null) {
-            if (e.matches) {
-                document.body.classList.add('dark-mode');
-                updateToggleIcon(true);
-                showNotification('🌙 Passage au mode sombre (système)', 'info');
-            } else {
-                document.body.classList.remove('dark-mode');
-                updateToggleIcon(false);
-                showNotification('☀️ Passage au mode clair (système)', 'info');
-            }
-        }
-    };
-    
-    // Écouter les changements (pour les navigateurs modernes)
-    if (darkModeMediaQuery.addEventListener) {
-        darkModeMediaQuery.addEventListener('change', handleThemeChange);
-    } else {
-        // Fallback pour les anciens navigateurs
-        darkModeMediaQuery.addListener(handleThemeChange);
-    }
-}
-
-// Basculer entre mode clair et sombre
-function toggleDarkMode() {
-    const isDarkMode = document.body.classList.toggle('dark-mode');
-    
-    // Sauvegarder le choix manuel de l'utilisateur
-    localStorage.setItem('darkMode', isDarkMode);
-    updateToggleIcon(isDarkMode);
-    
-    // Animation douce
-    document.body.style.transition = 'all 0.5s ease';
-    
-    // Notification avec indication du choix manuel
-    const message = isDarkMode ? '🌙 Mode sombre activé' : '☀️ Mode clair activé';
-    showNotification(message, 'success');
-}
-
-// Réinitialiser aux préférences système
-function resetToSystemTheme() {
-    localStorage.removeItem('darkMode');
-    detectSystemTheme();
-    showNotification('🔄 Thème réinitialisé aux préférences système', 'info');
-}
-
-// Mettre à jour l'icône du bouton
-function updateToggleIcon(isDarkMode) {
-    const toggleIcon = document.querySelector('.toggle-icon');
-    toggleIcon.textContent = isDarkMode ? '☀️' : '🌙';
-    
-    // Indicateur visuel si le thème suit le système
-    const resetBtn = document.getElementById('resetThemeBtn');
-    const isFollowingSystem = localStorage.getItem('darkMode') === null;
-    
-    if (resetBtn) {
-        if (isFollowingSystem) {
-            resetBtn.style.opacity = '0.5';
-            resetBtn.title = 'Suit actuellement les préférences système';
-        } else {
-            resetBtn.style.opacity = '1';
-            resetBtn.title = 'Réinitialiser aux préférences système';
-        }
-    }
-}
-
-// === CONVERSION DE DEVISES ===
-
-// Initialiser le sélecteur de devise
-function initializeCurrency() {
-    const currencySelect = document.getElementById('currencySelect');
-    currencySelect.value = currentCurrency;
-}
-
-// Gérer le changement de devise
-function handleCurrencyChange(event) {
-    currentCurrency = event.target.value;
-    localStorage.setItem('selectedCurrency', currentCurrency);
-    
-    // Rafraîchir l'affichage
-    displayPortfolio();
-    
-    // Rafraîchir les résultats de recherche s'il y en a
-    const searchResults = document.getElementById('searchResults');
-    if (searchResults.innerHTML && !searchResults.innerHTML.includes('loading')) {
-        const symbol = document.getElementById('stockSearch').value.trim().toUpperCase();
-        if (symbol) {
-            searchStock();
-        }
-    }
-    
-    // Rafraîchir le calculateur s'il y a des résultats
-    const calcResults = document.getElementById('calculatorResults');
-    if (calcResults.innerHTML && !calcResults.innerHTML.includes('loading')) {
-        calculateInvestment();
-    }
-}
-
-// Convertir un montant USD vers la devise sélectionnée
-function convertCurrency(amountUSD) {
-    return amountUSD * exchangeRates[currentCurrency];
-}
-
-// Obtenir le symbole de la devise actuelle
-function getCurrencySymbol() {
-    return currencySymbols[currentCurrency];
-}
-
-// Formater un prix avec la devise
-function formatPrice(price) {
-    const convertedPrice = convertCurrency(price);
-    const symbol = getCurrencySymbol();
-    
-    // Format selon la devise
-    if (currentCurrency === 'JPY') {
-        return `${symbol}${Math.round(convertedPrice).toLocaleString('fr-FR')}`;
-    } else {
-        return `${symbol}${convertedPrice.toFixed(2)}`;
-    }
-}
-
-// Mettre à jour les taux de change (API gratuite)
-async function updateExchangeRates() {
-    try {
-        // Utiliser une API de taux de change gratuite
-        const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-        const data = await response.json();
-        
-        if (data.rates) {
-            exchangeRates = {
-                'USD': 1,
-                'EUR': data.rates.EUR || 0.92,
-                'CAD': data.rates.CAD || 1.36,
-                'GBP': data.rates.GBP || 0.79,
-                'JPY': data.rates.JPY || 149.50,
-                'CHF': data.rates.CHF || 0.88
-            };
-            console.log('✅ Taux de change mis à jour');
-        }
-    } catch (error) {
-        console.log('ℹ️ Utilisation des taux de change par défaut');
-    }
-}
-
-// === THÈMES PERSONNALISÉS ===
-
-// Initialiser le sélecteur de thème
-function initializeThemes() {
-    const themeSelect = document.getElementById('themeSelect');
-    themeSelect.value = currentTheme;
-    applyTheme(currentTheme);
-}
-
-// Gérer le changement de thème
-function handleThemeChange(event) {
-    const newTheme = event.target.value;
-    currentTheme = newTheme;
-    localStorage.setItem('selectedTheme', newTheme);
-    applyTheme(newTheme);
-    
-    const themeNames = {
-        'zen-rose': 'Zen Rose',
-        'ocean-blue': 'Ocean Bleu',
-        'forest-green': 'Forêt Verte',
-        'sunset-orange': 'Sunset Orange',
-        'lavender-dream': 'Lavande Rêve',
-        'minimalist': 'Minimaliste'
-    };
-    
-    showNotification(`🎨 Thème ${themeNames[newTheme]} appliqué`, 'success');
-}
-
-// Appliquer un thème
-function applyTheme(themeName) {
-    document.body.setAttribute('data-theme', themeName);
-    
-    // Animation fluide
-    document.body.style.transition = 'all 0.5s ease';
-}
-
-// === RAFRAÎCHISSEMENT AUTOMATIQUE ===
-
-// Initialiser le rafraîchissement automatique
-function initializeAutoRefresh() {
-    const autoRefreshToggle = document.getElementById('autoRefreshToggle');
-    const refreshInterval = document.getElementById('refreshInterval');
-    
-    // Charger les préférences sauvegardées
-    const savedAutoRefresh = localStorage.getItem('autoRefresh') === 'true';
-    const savedInterval = localStorage.getItem('refreshInterval') || '60';
-    
-    autoRefreshToggle.checked = savedAutoRefresh;
-    refreshInterval.value = savedInterval;
-    refreshInterval.disabled = !savedAutoRefresh;
-    
-    if (savedAutoRefresh) {
-        startAutoRefresh(parseInt(savedInterval));
-    }
-}
-
-// Activer/désactiver le rafraîchissement automatique
-function toggleAutoRefresh(event) {
-    isAutoRefreshEnabled = event.target.checked;
-    const refreshInterval = document.getElementById('refreshInterval');
-    
-    refreshInterval.disabled = !isAutoRefreshEnabled;
-    localStorage.setItem('autoRefresh', isAutoRefreshEnabled);
-    
-    if (isAutoRefreshEnabled) {
-        const interval = parseInt(refreshInterval.value);
-        startAutoRefresh(interval);
-        showNotification('🔄 Rafraîchissement automatique activé', 'success');
-    } else {
-        stopAutoRefresh();
-        showNotification('⏸️ Rafraîchissement automatique désactivé', 'info');
-    }
-}
-
-// Mettre à jour l'intervalle de rafraîchissement
-function updateRefreshInterval(event) {
-    const interval = parseInt(event.target.value);
-    localStorage.setItem('refreshInterval', interval);
-    
-    if (isAutoRefreshEnabled) {
-        stopAutoRefresh();
-        startAutoRefresh(interval);
-        showNotification(`🔄 Intervalle mis à jour: ${interval}s`, 'success');
-    }
-}
-
-// Démarrer le rafraîchissement automatique
-function startAutoRefresh(intervalSeconds) {
-    stopAutoRefresh(); // Arrêter l'ancien intervalle s'il existe
-    
-    autoRefreshInterval = setInterval(() => {
-        console.log('🔄 Rafraîchissement automatique...');
-        refreshData();
-    }, intervalSeconds * 1000);
-    
-    isAutoRefreshEnabled = true;
-}
-
-// Arrêter le rafraîchissement automatique
-function stopAutoRefresh() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
-    }
-    isAutoRefreshEnabled = false;
-}
-
-// Rafraîchir les données
-async function refreshData() {
-    // Rafraîchir le portefeuille si non vide
-    if (portfolio.length > 0) {
-        await displayPortfolio();
-    }
-    
-    // Rafraîchir les résultats de recherche s'il y en a
-    const searchResults = document.getElementById('searchResults');
-    if (searchResults.innerHTML && !searchResults.innerHTML.includes('empty-state') && !searchResults.innerHTML.includes('loading')) {
-        const symbol = document.getElementById('stockSearch').value.trim().toUpperCase();
-        if (symbol) {
-            await searchStock();
-        }
-    }
-}
-
-// Afficher une notification
-function showNotification(message, type = 'info') {
-    // Créer une notification temporaire
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    
-    let bgColor;
-    switch(type) {
-        case 'success':
-            bgColor = 'var(--vert)';
-            break;
-        case 'error':
-            bgColor = 'var(--rose)';
-            break;
-        case 'info':
-        default:
-            bgColor = 'var(--lavande)';
-    }
-    
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 25px;
-        background: ${bgColor};
-        color: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px var(--shadow-color);
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-        font-family: Georgia, serif;
-        max-width: 400px;
-        word-wrap: break-word;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 4000);
-}
 
 // Fonction principale de recherche
 async function searchStock() {
@@ -488,9 +48,13 @@ async function searchStock() {
         
         // Charger les news pour cette action
         fetchStockNews(symbol);
+        
+        // Charger le graphique
+        fetchAndDisplayChart(symbol);
     } catch (error) {
-        showError('Erreur lors de la recherche. Vérifiez le symbole et réessayez.');
-        console.error(error);
+        // Si l'API ne marche pas, afficher quand même des données de démo
+        console.error('Erreur API:', error);
+        displayDemoStock(symbol);
     }
 }
 
@@ -533,21 +97,21 @@ function displayStockCard(stock, containerId) {
                     <div class="stock-symbol">${stock.symbol}</div>
                     <div class="stock-name">${stock.name}</div>
                 </div>
-                <div class="stock-price">${formatPrice(stock.price)}</div>
+                <div class="stock-price">$${stock.price.toFixed(2)}</div>
             </div>
             
             <div class="stock-change ${isPositive ? 'positive' : 'negative'}">
-                ${isPositive ? '↑' : '↓'} ${formatPrice(Math.abs(stock.change))} (${stock.changePercent})
+                ${isPositive ? '↑' : '↓'} ${Math.abs(stock.change).toFixed(2)} (${stock.changePercent})
             </div>
             
             <div class="stock-details">
                 <div class="detail-item">
                     <div class="detail-label">Plus Haut</div>
-                    <div class="detail-value">${formatPrice(stock.high)}</div>
+                    <div class="detail-value">$${stock.high.toFixed(2)}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Plus Bas</div>
-                    <div class="detail-value">${formatPrice(stock.low)}</div>
+                    <div class="detail-value">$${stock.low.toFixed(2)}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Volume</div>
@@ -555,7 +119,7 @@ function displayStockCard(stock, containerId) {
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Clôture Précédente</div>
-                    <div class="detail-value">${formatPrice(stock.previousClose)}</div>
+                    <div class="detail-value">$${stock.previousClose.toFixed(2)}</div>
                 </div>
             </div>
             
@@ -571,6 +135,42 @@ function displayStockCard(stock, containerId) {
     `;
     
     container.innerHTML = card;
+}
+
+// Afficher une action de démo si l'API ne marche pas
+function displayDemoStock(symbol) {
+    const container = document.getElementById('searchResults');
+    
+    // Données de démo réalistes
+    const basePrice = 150 + Math.random() * 100;
+    const change = (Math.random() - 0.5) * 5;
+    const changePercent = ((change / basePrice) * 100).toFixed(2) + '%';
+    const isPositive = change >= 0;
+    
+    const stock = {
+        symbol: symbol,
+        name: symbol,
+        price: basePrice,
+        change: change,
+        changePercent: changePercent,
+        high: basePrice + Math.abs(change) + 2,
+        low: basePrice - Math.abs(change) - 2,
+        volume: Math.floor(50000000 + Math.random() * 50000000),
+        previousClose: basePrice - change
+    };
+    
+    displayStockCard(stock, 'searchResults');
+    
+    // Ajouter une note
+    const note = document.createElement('div');
+    note.style.cssText = 'background: rgba(201, 160, 220, 0.1); padding: 15px; border-radius: 12px; margin-top: 15px; border-left: 3px solid #c9a0dc;';
+    note.innerHTML = '<small style="color: #8b7d8b;">💡 <em>Données de démonstration (API limitée). Obtenez votre clé gratuite sur alphavantage.co</em></small>';
+    container.appendChild(note);
+    
+    // Charger quand même les news et le graphique de démo
+    displayGenericNews(symbol);
+    createDemoChart(symbol);
+    document.getElementById('chartContainer').style.display = 'block';
 }
 
 // Ajouter au portefeuille
@@ -610,11 +210,11 @@ async function displayPortfolio() {
                         <div>
                             <div class="stock-symbol">${stockData.symbol}</div>
                         </div>
-                        <div class="stock-price">${formatPrice(stockData.price)}</div>
+                        <div class="stock-price">$${stockData.price.toFixed(2)}</div>
                     </div>
                     
                     <div class="stock-change ${isPositive ? 'positive' : 'negative'}">
-                        ${isPositive ? '↑' : '↓'} ${formatPrice(Math.abs(stockData.change))} (${stockData.changePercent})
+                        ${isPositive ? '↑' : '↓'} ${Math.abs(stockData.change).toFixed(2)} (${stockData.changePercent})
                     </div>
                     
                     <div class="action-buttons">
@@ -691,21 +291,21 @@ async function displayComparison() {
                         <div>
                             <div class="stock-symbol">${stockData.symbol}</div>
                         </div>
-                        <div class="stock-price">${formatPrice(stockData.price)}</div>
+                        <div class="stock-price">$${stockData.price.toFixed(2)}</div>
                     </div>
                     
                     <div class="stock-change ${isPositive ? 'positive' : 'negative'}">
-                        ${isPositive ? '↑' : '↓'} ${formatPrice(Math.abs(stockData.change))} (${stockData.changePercent})
+                        ${isPositive ? '↑' : '↓'} ${Math.abs(stockData.change).toFixed(2)} (${stockData.changePercent})
                     </div>
                     
                     <div class="stock-details">
                         <div class="detail-item">
                             <div class="detail-label">Plus Haut</div>
-                            <div class="detail-value">${formatPrice(stockData.high)}</div>
+                            <div class="detail-value">$${stockData.high.toFixed(2)}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Plus Bas</div>
-                            <div class="detail-value">${formatPrice(stockData.low)}</div>
+                            <div class="detail-value">$${stockData.low.toFixed(2)}</div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">Volume</div>
@@ -941,7 +541,7 @@ async function calculateInvestment() {
             <div class="result-card">
                 <div class="result-header">
                     <div class="result-title">Votre investissement dans ${symbol}</div>
-                    <div class="result-total">${formatPrice(totalCost)}</div>
+                    <div class="result-total">$${totalCost.toFixed(2)}</div>
                 </div>
                 
                 <div class="result-details">
@@ -952,25 +552,25 @@ async function calculateInvestment() {
                     
                     <div class="result-item">
                         <div class="result-label">Prix par action</div>
-                        <div class="result-value">${formatPrice(stockData.price)}</div>
+                        <div class="result-value">$${stockData.price.toFixed(2)}</div>
                     </div>
                     
                     <div class="result-item">
                         <div class="result-label">Coût total</div>
-                        <div class="result-value">${formatPrice(totalCost)}</div>
+                        <div class="result-value">$${totalCost.toFixed(2)}</div>
                     </div>
                     
                     <div class="result-item">
                         <div class="result-label">Variation du jour</div>
                         <div class="result-value ${isPositive ? 'positive' : 'negative'}" style="color: ${isPositive ? '#a8c9a8' : '#d4a5a5'}">
-                            ${isPositive ? '+' : ''}${formatPrice(stockData.change * shares)}
+                            ${isPositive ? '+' : ''}$${(stockData.change * shares).toFixed(2)}
                         </div>
                     </div>
                 </div>
                 
                 <div class="investment-tip">
                     💡 <strong>Note zen :</strong> Avec ${shares} action${shares > 1 ? 's' : ''} de ${symbol}, 
-                    votre investissement varie d'environ ${formatPrice(potentialDailyVariation)} par jour. 
+                    votre investissement varie d'environ $${potentialDailyVariation.toFixed(2)} par jour. 
                     ${isPositive ? '✨ Belle journée pour vos actions !' : '🌸 Restez sereine, les marchés fluctuent naturellement.'}
                 </div>
             </div>
@@ -981,237 +581,6 @@ async function calculateInvestment() {
     } catch (error) {
         resultsContainer.innerHTML = '<div class="error-message">💭 Impossible de calculer. Vérifiez le symbole et réessayez.</div>';
         console.error(error);
-    }
-}
-
-// === SYSTÈME D'ALERTES ===
-
-// Initialiser les alertes
-function initializeAlerts() {
-    displayAlerts();
-}
-
-// Afficher les alertes
-function displayAlerts() {
-    const container = document.getElementById('alertsList');
-    
-    if (alerts.length === 0) {
-        container.innerHTML = '<p class="empty-state">Aucune alerte configurée. Créez votre première alerte ✨</p>';
-        return;
-    }
-    
-    let alertsHTML = '';
-    
-    alerts.forEach((alert, index) => {
-        const statusClass = alert.triggered ? 'triggered' : 'active';
-        const statusText = alert.triggered ? '🔔 Déclenchée !' : '✅ Active';
-        
-        const conditionText = getAlertConditionText(alert);
-        
-        alertsHTML += `
-            <div class="alert-card ${statusClass}">
-                <div class="alert-info">
-                    <div class="alert-symbol">${alert.symbol}</div>
-                    <div class="alert-condition">${conditionText}</div>
-                    <div class="alert-status">${statusText}</div>
-                </div>
-                <div class="alert-actions">
-                    <button class="delete-alert-btn" onclick="deleteAlert(${index})">
-                        🗑️ Supprimer
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-    
-    container.innerHTML = alertsHTML;
-}
-
-// Obtenir le texte de condition de l'alerte
-function getAlertConditionText(alert) {
-    const symbol = getCurrencySymbol();
-    
-    switch(alert.type) {
-        case 'price-above':
-            return `Alerte quand le prix monte au-dessus de ${symbol}${alert.value}`;
-        case 'price-below':
-            return `Alerte quand le prix descend en-dessous de ${symbol}${alert.value}`;
-        case 'change-positive':
-            return `Alerte pour une hausse de +${alert.value}%`;
-        case 'change-negative':
-            return `Alerte pour une baisse de -${alert.value}%`;
-        case 'volume-spike':
-            return `Alerte pour un volume inhabituel`;
-        default:
-            return 'Condition inconnue';
-    }
-}
-
-// Ouvrir le modal d'alerte
-function openAlertModal() {
-    const modal = document.getElementById('alertModal');
-    modal.classList.add('show');
-    
-    // Réinitialiser le formulaire
-    document.getElementById('alertSymbol').value = '';
-    document.getElementById('alertType').value = 'price-above';
-    document.getElementById('alertValue').value = '';
-    
-    updateAlertValueVisibility();
-}
-
-// Fermer le modal d'alerte
-function closeAlertModal() {
-    const modal = document.getElementById('alertModal');
-    modal.classList.remove('show');
-}
-
-// Mettre à jour la visibilité du champ de valeur
-function updateAlertValueVisibility() {
-    const alertType = document.getElementById('alertType').value;
-    const valueGroup = document.getElementById('alertValueGroup');
-    
-    if (alertType === 'volume-spike') {
-        valueGroup.style.display = 'none';
-    } else {
-        valueGroup.style.display = 'flex';
-    }
-}
-
-// Écouter les changements de type d'alerte
-document.addEventListener('DOMContentLoaded', function() {
-    const alertTypeSelect = document.getElementById('alertType');
-    if (alertTypeSelect) {
-        alertTypeSelect.addEventListener('change', updateAlertValueVisibility);
-    }
-});
-
-// Sauvegarder une alerte
-function saveAlert() {
-    const symbol = document.getElementById('alertSymbol').value.trim().toUpperCase();
-    const type = document.getElementById('alertType').value;
-    const value = parseFloat(document.getElementById('alertValue').value);
-    
-    // Validation
-    if (!symbol) {
-        showNotification('❌ Veuillez entrer un symbole d\'action', 'error');
-        return;
-    }
-    
-    if (type !== 'volume-spike' && (!value || value <= 0)) {
-        showNotification('❌ Veuillez entrer une valeur valide', 'error');
-        return;
-    }
-    
-    // Créer l'alerte
-    const newAlert = {
-        id: Date.now(),
-        symbol: symbol,
-        type: type,
-        value: value || null,
-        triggered: false,
-        createdAt: new Date().toISOString()
-    };
-    
-    alerts.push(newAlert);
-    localStorage.setItem('alerts', JSON.stringify(alerts));
-    
-    displayAlerts();
-    closeAlertModal();
-    
-    showNotification(`🔔 Alerte créée pour ${symbol}`, 'success');
-}
-
-// Supprimer une alerte
-function deleteAlert(index) {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette alerte ?')) {
-        alerts.splice(index, 1);
-        localStorage.setItem('alerts', JSON.stringify(alerts));
-        displayAlerts();
-        showNotification('🗑️ Alerte supprimée', 'info');
-    }
-}
-
-// Vérifier les alertes
-async function checkAlerts() {
-    if (alerts.length === 0) return;
-    
-    for (let i = 0; i < alerts.length; i++) {
-        const alert = alerts[i];
-        
-        if (alert.triggered) continue; // Skip already triggered alerts
-        
-        try {
-            const stockData = await fetchStockData(alert.symbol);
-            const currentPrice = convertCurrency(stockData.price);
-            const changePercent = parseFloat(stockData.changePercent.replace('%', ''));
-            
-            let shouldTrigger = false;
-            
-            switch(alert.type) {
-                case 'price-above':
-                    shouldTrigger = currentPrice >= alert.value;
-                    break;
-                case 'price-below':
-                    shouldTrigger = currentPrice <= alert.value;
-                    break;
-                case 'change-positive':
-                    shouldTrigger = changePercent >= alert.value;
-                    break;
-                case 'change-negative':
-                    shouldTrigger = changePercent <= -alert.value;
-                    break;
-                case 'volume-spike':
-                    // Simple heuristic: volume is unusually high
-                    shouldTrigger = stockData.volume > stockData.previousClose * 1.5;
-                    break;
-            }
-            
-            if (shouldTrigger) {
-                alert.triggered = true;
-                localStorage.setItem('alerts', JSON.stringify(alerts));
-                
-                const symbol = getCurrencySymbol();
-                const message = `🔔 ALERTE: ${alert.symbol} - ${getAlertConditionText(alert)}. Prix actuel: ${symbol}${currentPrice.toFixed(2)}`;
-                
-                showNotification(message, 'success');
-                displayAlerts();
-                
-                // Play sound or show browser notification if supported
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification(`Alerte ${alert.symbol}`, {
-                        body: message,
-                        icon: '🔔'
-                    });
-                }
-            }
-        } catch (error) {
-            console.error(`Erreur lors de la vérification de l'alerte pour ${alert.symbol}:`, error);
-        }
-    }
-}
-
-// Démarrer la vérification périodique des alertes
-function startAlertChecking() {
-    // Vérifier toutes les 60 secondes
-    alertCheckInterval = setInterval(() => {
-        checkAlerts();
-    }, 60000);
-    
-    // Première vérification immédiate
-    checkAlerts();
-    
-    // Demander la permission pour les notifications
-    if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-    }
-}
-
-// Arrêter la vérification des alertes
-function stopAlertChecking() {
-    if (alertCheckInterval) {
-        clearInterval(alertCheckInterval);
-        alertCheckInterval = null;
     }
 }
 
@@ -1235,4 +604,184 @@ function showError(message) {
     setTimeout(() => {
         searchResults.innerHTML = '';
     }, 3000);
+}
+
+// ===== GRAPHIQUE =====
+let stockChart = null;
+
+async function fetchAndDisplayChart(symbol) {
+    const chartContainer = document.getElementById('chartContainer');
+    chartContainer.style.display = 'block';
+    
+    try {
+        // Récupérer les données historiques (TIME_SERIES_DAILY)
+        const chartUrl = `${API_BASE}?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`;
+        const response = await fetch(chartUrl);
+        const data = await response.json();
+        
+        const timeSeries = data['Time Series (Daily)'];
+        
+        if (!timeSeries) {
+            // Si pas de données, créer un graphique de démonstration
+            createDemoChart(symbol);
+            return;
+        }
+        
+        // Extraire les 30 derniers jours
+        const dates = Object.keys(timeSeries).slice(0, 30).reverse();
+        const prices = dates.map(date => parseFloat(timeSeries[date]['4. close']));
+        
+        createChart(symbol, dates, prices);
+        
+    } catch (error) {
+        console.error('Erreur graphique:', error);
+        createDemoChart(symbol);
+    }
+}
+
+function createChart(symbol, dates, prices) {
+    const ctx = document.getElementById('stockChart').getContext('2d');
+    
+    // Détruire l'ancien graphique s'il existe
+    if (stockChart) {
+        stockChart.destroy();
+    }
+    
+    // Déterminer la couleur selon la tendance
+    const isPositive = prices[prices.length - 1] > prices[0];
+    const lineColor = isPositive ? '#a8c9a8' : '#e8c1c1';
+    const gradientColor = isPositive ? 
+        'rgba(168, 201, 168, 0.2)' : 
+        'rgba(232, 193, 193, 0.2)';
+    
+    // Créer le dégradé
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, gradientColor);
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    
+    // Formater les dates
+    const formattedDates = dates.map(date => {
+        const d = new Date(date);
+        return `${d.getDate()}/${d.getMonth() + 1}`;
+    });
+    
+    // Créer le graphique
+    stockChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: formattedDates,
+            datasets: [{
+                label: `Prix ${symbol}`,
+                data: prices,
+                borderColor: lineColor,
+                backgroundColor: gradient,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: lineColor,
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: lineColor,
+                    borderWidth: 2,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return '$' + context.parsed.y.toFixed(2);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#8b7d8b',
+                        maxRotation: 0,
+                        autoSkipPadding: 20
+                    }
+                },
+                y: {
+                    grid: {
+                        color: 'rgba(212, 165, 165, 0.1)'
+                    },
+                    ticks: {
+                        color: '#8b7d8b',
+                        callback: function(value) {
+                            return '$' + value.toFixed(0);
+                        }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+}
+
+function createDemoChart(symbol) {
+    // Créer des données de démo si l'API ne fonctionne pas
+    const today = new Date();
+    const dates = [];
+    const basePrice = 150 + Math.random() * 100;
+    const prices = [];
+    
+    for (let i = 29; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        dates.push(date.toISOString().split('T')[0]);
+        
+        // Générer un prix avec variation
+        const variation = (Math.random() - 0.5) * 10;
+        const price = i === 29 ? basePrice : prices[prices.length - 1] + variation;
+        prices.push(Math.max(price, basePrice * 0.8)); // Éviter les prix trop bas
+    }
+    
+    createChart(symbol, dates, prices);
+    
+    // Ajouter une note
+    const note = document.createElement('p');
+    note.style.cssText = 'text-align: center; color: #8b7d8b; font-size: 0.85em; margin-top: 10px; font-style: italic;';
+    note.textContent = '💡 Données illustratives pour démonstration';
+    document.getElementById('chartContainer').appendChild(note);
+}
+
+// ===== THEME TOGGLE =====
+function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    
+    // Animation du bouton
+    const toggleBtn = document.getElementById('themeToggle');
+    toggleBtn.style.transform = 'rotate(360deg)';
+    setTimeout(() => {
+        toggleBtn.style.transform = 'rotate(0deg)';
+    }, 400);
+}
+
+function loadTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
 }
