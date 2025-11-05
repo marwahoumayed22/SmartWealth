@@ -16,6 +16,13 @@ let animationId = null;
 // Variable pour le graphique de comparaison
 let comparisonChart = null;
 
+// Variables pour le Battle Royale
+let battleMode = false;
+let battleCanvas, battleCtx;
+let fighters = [];
+let battleInterval = null;
+let battleAnimationId = null;
+
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Application chargée !');
@@ -56,9 +63,469 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // Battle Royale Toggle
+    document.getElementById('battleToggle').addEventListener('click', toggleBattleSection);
+    
+    // Battle Royale Controls
+    document.getElementById('startBattleBtn').addEventListener('click', startBattle);
+    document.getElementById('stopBattleBtn').addEventListener('click', stopBattle);
+    
+    // Init Battle Canvas
+    initBattleCanvas();
+    
     // Charger le portefeuille existant
     displayPortfolio();
 });
+
+// ===== BATTLE ROYALE =====
+
+function initBattleCanvas() {
+    battleCanvas = document.getElementById('battleCanvas');
+    battleCtx = battleCanvas.getContext('2d');
+    
+    resizeBattleCanvas();
+    window.addEventListener('resize', resizeBattleCanvas);
+}
+
+function resizeBattleCanvas() {
+    battleCanvas.width = window.innerWidth;
+    battleCanvas.height = window.innerHeight;
+}
+
+function toggleBattleSection() {
+    const section = document.getElementById('battleSection');
+    const button = document.getElementById('battleToggle');
+    
+    if (section.style.display === 'none' || section.style.display === '') {
+        section.style.display = 'block';
+        button.classList.add('active');
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        section.style.display = 'none';
+        button.classList.remove('active');
+        stopBattle();
+    }
+}
+
+async function startBattle() {
+    if (portfolio.length < 2) {
+        alert('⚔️ Ajoutez au moins 2 actions à votre portefeuille pour lancer le combat !');
+        return;
+    }
+    
+    // Activer le mode battle
+    battleMode = true;
+    document.body.classList.add('battle-mode');
+    
+    // Cacher le bouton start, montrer le bouton stop
+    document.getElementById('startBattleBtn').style.display = 'none';
+    document.getElementById('stopBattleBtn').style.display = 'block';
+    
+    // Initialiser les fighters
+    await initializeFighters();
+    
+    // Afficher l'arène
+    displayBattleArena();
+    
+    // Démarrer l'animation canvas
+    animateBattle();
+    
+    // Démarrer le combat automatique
+    battleInterval = setInterval(performBattleRound, 2000);
+    
+    console.log('⚔️ BATTLE ROYALE COMMENCÉE !');
+}
+
+function stopBattle() {
+    battleMode = false;
+    document.body.classList.remove('battle-mode');
+    
+    // Montrer le bouton start, cacher le bouton stop
+    document.getElementById('startBattleBtn').style.display = 'block';
+    document.getElementById('stopBattleBtn').style.display = 'none';
+    
+    // Arrêter les animations
+    if (battleInterval) {
+        clearInterval(battleInterval);
+        battleInterval = null;
+    }
+    
+    if (battleAnimationId) {
+        cancelAnimationFrame(battleAnimationId);
+        battleAnimationId = null;
+    }
+    
+    // Nettoyer le canvas
+    battleCtx.clearRect(0, 0, battleCanvas.width, battleCanvas.height);
+    
+    console.log('⚔️ Battle arrêtée');
+}
+
+async function initializeFighters() {
+    fighters = [];
+    
+    for (const symbol of portfolio) {
+        try {
+            const stockData = await fetchStockData(symbol);
+            
+            // Calculer la santé basée sur la performance
+            const changePercent = parseFloat(stockData.changePercent.replace('%', ''));
+            const baseHealth = 100;
+            const healthBonus = Math.max(-30, Math.min(30, changePercent * 2));
+            const health = baseHealth + healthBonus;
+            
+            fighters.push({
+                symbol: symbol,
+                health: Math.max(20, Math.min(130, health)),
+                maxHealth: Math.max(20, Math.min(130, health)),
+                attack: 10 + Math.random() * 10,
+                defense: 5 + Math.random() * 5,
+                price: stockData.price,
+                change: stockData.change,
+                changePercent: changePercent,
+                wins: 0,
+                isAlive: true,
+                x: Math.random() * (battleCanvas.width - 100) + 50,
+                y: Math.random() * (battleCanvas.height - 100) + 50,
+                targetX: 0,
+                targetY: 0,
+                color: `hsl(${Math.random() * 360}, 70%, 60%)`
+            });
+        } catch (error) {
+            console.error(`Erreur pour ${symbol}:`, error);
+            
+            // Créer un fighter avec des données de démo
+            fighters.push({
+                symbol: symbol,
+                health: 100,
+                maxHealth: 100,
+                attack: 10 + Math.random() * 10,
+                defense: 5 + Math.random() * 5,
+                price: 150 + Math.random() * 100,
+                change: (Math.random() - 0.5) * 5,
+                changePercent: ((Math.random() - 0.5) * 10).toFixed(2),
+                wins: 0,
+                isAlive: true,
+                x: Math.random() * (battleCanvas.width - 100) + 50,
+                y: Math.random() * (battleCanvas.height - 100) + 50,
+                targetX: 0,
+                targetY: 0,
+                color: `hsl(${Math.random() * 360}, 70%, 60%)`
+            });
+        }
+    }
+}
+
+function displayBattleArena() {
+    const arena = document.getElementById('battleArena');
+    const leaderboard = document.getElementById('battleLeaderboard');
+    
+    leaderboard.style.display = 'block';
+    
+    let arenaHTML = '<div class="battle-grid">';
+    
+    fighters.forEach(fighter => {
+        const healthPercent = (fighter.health / fighter.maxHealth) * 100;
+        const isLowHealth = healthPercent < 30;
+        const knockedOut = !fighter.isAlive;
+        
+        arenaHTML += `
+            <div class="fighter-card ${knockedOut ? 'knocked-out' : ''}" id="fighter-${fighter.symbol}">
+                <div class="fighter-header">
+                    <div class="fighter-symbol">${fighter.symbol}</div>
+                    <div class="fighter-rank">#${fighters.indexOf(fighter) + 1}</div>
+                </div>
+                
+                <div class="fighter-status">
+                    ${knockedOut ? '💀' : fighter.health > 70 ? '💪' : fighter.health > 40 ? '😤' : '🤕'}
+                </div>
+                
+                <div class="health-bar-container">
+                    <div class="health-text">${Math.round(fighter.health)}/${fighter.maxHealth}</div>
+                    <div class="health-bar ${isLowHealth ? 'low-health' : ''}" 
+                         style="width: ${healthPercent}%">
+                    </div>
+                </div>
+                
+                <div class="fighter-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">⚔️ Attaque</div>
+                        <div class="stat-value">${fighter.attack.toFixed(1)}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">🛡️ Défense</div>
+                        <div class="stat-value">${fighter.defense.toFixed(1)}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">🏆 Victoires</div>
+                        <div class="stat-value">${fighter.wins}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">📊 Performance</div>
+                        <div class="stat-value" style="color: ${fighter.changePercent >= 0 ? '#32cd32' : '#dc143c'}">
+                            ${fighter.changePercent >= 0 ? '+' : ''}${fighter.changePercent}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    arenaHTML += '</div>';
+    arena.innerHTML = arenaHTML;
+    
+    updateLeaderboard();
+}
+
+function updateLeaderboard() {
+    const leaderboardList = document.getElementById('leaderboardList');
+    
+    // Trier les fighters par santé (vivants d'abord)
+    const sortedFighters = [...fighters].sort((a, b) => {
+        if (a.isAlive && !b.isAlive) return -1;
+        if (!a.isAlive && b.isAlive) return 1;
+        return b.health - a.health;
+    });
+    
+    let leaderboardHTML = '';
+    
+    sortedFighters.forEach((fighter, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+        
+        leaderboardHTML += `
+            <div class="leaderboard-item ${index === 0 && fighter.isAlive ? 'victory-animation' : ''}">
+                <div class="leaderboard-rank">${medal || (index + 1)}</div>
+                <div class="leaderboard-symbol">${fighter.symbol}</div>
+                <div class="leaderboard-health" style="color: ${fighter.isAlive ? '#32cd32' : '#dc143c'}">
+                    ${fighter.isAlive ? Math.round(fighter.health) + ' HP' : 'K.O.'}
+                </div>
+            </div>
+        `;
+    });
+    
+    leaderboardList.innerHTML = leaderboardHTML;
+}
+
+function performBattleRound() {
+    // Trouver les fighters vivants
+    const aliveFighters = fighters.filter(f => f.isAlive);
+    
+    if (aliveFighters.length <= 1) {
+        // Battle terminée !
+        endBattle();
+        return;
+    }
+    
+    // Sélectionner 2 fighters aléatoires pour combattre
+    const fighter1 = aliveFighters[Math.floor(Math.random() * aliveFighters.length)];
+    let fighter2 = aliveFighters[Math.floor(Math.random() * aliveFighters.length)];
+    
+    // S'assurer qu'ils sont différents
+    while (fighter2 === fighter1 && aliveFighters.length > 1) {
+        fighter2 = aliveFighters[Math.floor(Math.random() * aliveFighters.length)];
+    }
+    
+    // Combat !
+    executeCombat(fighter1, fighter2);
+    
+    // Mettre à jour l'affichage
+    displayBattleArena();
+}
+
+function executeCombat(attacker, defender) {
+    // Animer l'attaquant
+    const attackerCard = document.getElementById(`fighter-${attacker.symbol}`);
+    if (attackerCard) {
+        attackerCard.classList.add('attacking');
+        setTimeout(() => attackerCard.classList.remove('attacking'), 500);
+    }
+    
+    // Animer le défenseur
+    const defenderCard = document.getElementById(`fighter-${defender.symbol}`);
+    if (defenderCard) {
+        defenderCard.classList.add('defending');
+        setTimeout(() => defenderCard.classList.remove('defending'), 500);
+    }
+    
+    // Calculer les dégâts
+    const baseDamage = attacker.attack;
+    const criticalHit = Math.random() < 0.2; // 20% de chance de coup critique
+    const damage = Math.max(1, baseDamage * (criticalHit ? 2 : 1) - defender.defense * 0.5);
+    
+    // Appliquer les dégâts
+    defender.health -= damage;
+    
+    // Créer des particules sur le canvas
+    createBattleParticles(defender.x, defender.y, criticalHit ? '#ffd700' : '#ff4500');
+    
+    // Message de combat
+    const arena = document.getElementById('battleArena');
+    const message = document.createElement('div');
+    message.className = 'battle-message';
+    message.textContent = `⚔️ ${attacker.symbol} attaque ${defender.symbol} pour ${damage.toFixed(1)} dégâts${criticalHit ? ' CRITIQUE !' : ' !'}`;
+    arena.insertBefore(message, arena.firstChild);
+    
+    setTimeout(() => message.remove(), 2000);
+    
+    // Vérifier si le défenseur est K.O.
+    if (defender.health <= 0) {
+        defender.health = 0;
+        defender.isAlive = false;
+        attacker.wins++;
+        
+        if (defenderCard) {
+            defenderCard.classList.add('knocked-out');
+        }
+        
+        // Message K.O.
+        const koMessage = document.createElement('div');
+        koMessage.className = 'battle-message';
+        koMessage.style.background = 'rgba(220, 20, 60, 0.4)';
+        koMessage.textContent = `💀 ${defender.symbol} est K.O. ! ${attacker.symbol} gagne !`;
+        arena.insertBefore(koMessage, arena.firstChild);
+        
+        setTimeout(() => koMessage.remove(), 3000);
+    }
+    
+    updateLeaderboard();
+}
+
+function createBattleParticles(x, y, color) {
+    const particleCount = 20;
+    
+    for (let i = 0; i < particleCount; i++) {
+        const angle = (Math.PI * 2 * i) / particleCount;
+        const velocity = 50 + Math.random() * 50;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity;
+        
+        const particle = document.createElement('div');
+        particle.className = 'battle-particle';
+        particle.style.left = x + 'px';
+        particle.style.top = y + 'px';
+        particle.style.background = `radial-gradient(circle, ${color} 0%, transparent 70%)`;
+        particle.style.setProperty('--tx', tx + 'px');
+        particle.style.setProperty('--ty', ty + 'px');
+        
+        document.body.appendChild(particle);
+        
+        setTimeout(() => particle.remove(), 2000);
+    }
+}
+
+function animateBattle() {
+    if (!battleMode) return;
+    
+    // Fond sombre avec effet
+    battleCtx.fillStyle = 'rgba(26, 15, 15, 0.1)';
+    battleCtx.fillRect(0, 0, battleCanvas.width, battleCanvas.height);
+    
+    // Dessiner les fighters
+    fighters.forEach(fighter => {
+        if (!fighter.isAlive) return;
+        
+        // Déplacer vers une cible aléatoire
+        if (Math.random() < 0.02) {
+            fighter.targetX = Math.random() * (battleCanvas.width - 100) + 50;
+            fighter.targetY = Math.random() * (battleCanvas.height - 100) + 50;
+        }
+        
+        // Déplacement fluide
+        const dx = fighter.targetX - fighter.x;
+        const dy = fighter.targetY - fighter.y;
+        fighter.x += dx * 0.02;
+        fighter.y += dy * 0.02;
+        
+        // Dessiner le fighter
+        battleCtx.save();
+        
+        // Halo
+        const gradient = battleCtx.createRadialGradient(fighter.x, fighter.y, 0, fighter.x, fighter.y, 40);
+        gradient.addColorStop(0, fighter.color + 'aa');
+        gradient.addColorStop(1, fighter.color + '00');
+        battleCtx.fillStyle = gradient;
+        battleCtx.beginPath();
+        battleCtx.arc(fighter.x, fighter.y, 40, 0, Math.PI * 2);
+        battleCtx.fill();
+        
+        // Corps du fighter
+        battleCtx.fillStyle = fighter.color;
+        battleCtx.shadowBlur = 20;
+        battleCtx.shadowColor = fighter.color;
+        battleCtx.beginPath();
+        battleCtx.arc(fighter.x, fighter.y, 20, 0, Math.PI * 2);
+        battleCtx.fill();
+        
+        // Barre de vie
+        const healthBarWidth = 60;
+        const healthBarHeight = 8;
+        const healthPercent = fighter.health / fighter.maxHealth;
+        
+        battleCtx.shadowBlur = 0;
+        battleCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        battleCtx.fillRect(fighter.x - healthBarWidth / 2, fighter.y - 35, healthBarWidth, healthBarHeight);
+        
+        battleCtx.fillStyle = healthPercent > 0.3 ? '#32cd32' : '#dc143c';
+        battleCtx.fillRect(fighter.x - healthBarWidth / 2, fighter.y - 35, healthBarWidth * healthPercent, healthBarHeight);
+        
+        // Symbole
+        battleCtx.fillStyle = 'white';
+        battleCtx.font = 'bold 16px Georgia';
+        battleCtx.textAlign = 'center';
+        battleCtx.fillText(fighter.symbol, fighter.x, fighter.y - 45);
+        
+        battleCtx.restore();
+    });
+    
+    // Lignes de connexion entre fighters proches
+    for (let i = 0; i < fighters.length; i++) {
+        if (!fighters[i].isAlive) continue;
+        
+        for (let j = i + 1; j < fighters.length; j++) {
+            if (!fighters[j].isAlive) continue;
+            
+            const dx = fighters[i].x - fighters[j].x;
+            const dy = fighters[i].y - fighters[j].y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < 200) {
+                const opacity = (1 - distance / 200) * 0.3;
+                battleCtx.strokeStyle = `rgba(220, 20, 60, ${opacity})`;
+                battleCtx.lineWidth = 2;
+                battleCtx.beginPath();
+                battleCtx.moveTo(fighters[i].x, fighters[i].y);
+                battleCtx.lineTo(fighters[j].x, fighters[j].y);
+                battleCtx.stroke();
+            }
+        }
+    }
+    
+    battleAnimationId = requestAnimationFrame(animateBattle);
+}
+
+function endBattle() {
+    stopBattle();
+    
+    const winner = fighters.find(f => f.isAlive);
+    
+    if (winner) {
+        const arena = document.getElementById('battleArena');
+        const victoryMessage = document.createElement('div');
+        victoryMessage.className = 'battle-message';
+        victoryMessage.style.fontSize = '2em';
+        victoryMessage.style.background = 'linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 140, 0, 0.3))';
+        victoryMessage.style.padding = '30px';
+        victoryMessage.innerHTML = `
+            🏆 <strong>${winner.symbol}</strong> REMPORTE LE BATTLE ROYALE ! 🏆<br>
+            <span style="font-size: 0.6em;">Avec ${Math.round(winner.health)} HP restants</span>
+        `;
+        arena.insertBefore(victoryMessage, arena.firstChild);
+    }
+    
+    console.log('🏆 Battle terminée !');
+}
+
+// ===== FIN BATTLE ROYALE =====
 
 // ===== TIME MACHINE =====
 
@@ -69,7 +536,6 @@ function toggleTimeMachine() {
     if (section.style.display === 'none' || section.style.display === '') {
         section.style.display = 'block';
         button.classList.add('active');
-        // Scroll vers la section
         section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
         section.style.display = 'none';
@@ -83,7 +549,6 @@ async function timeTravel() {
     const years = parseInt(document.getElementById('tmYears').value);
     const resultsContainer = document.getElementById('timeMachineResults');
     
-    // Validation
     if (!symbol) {
         resultsContainer.innerHTML = '<div class="error-message">⏰ Veuillez entrer un symbole d\'action</div>';
         return;
@@ -94,24 +559,20 @@ async function timeTravel() {
         return;
     }
     
-    // Animation de voyage temporel
     showTimeWarp(years);
     
     resultsContainer.innerHTML = '<div class="loading">⏰ Calcul du voyage temporel...</div>';
     
     try {
-        // Calculer la date passée
         const pastDate = new Date();
         pastDate.setFullYear(pastDate.getFullYear() - years);
         
-        // Récupérer les données historiques
         const historicalData = await fetchHistoricalData(symbol, years);
         
         if (!historicalData || !historicalData.pastPrice || !historicalData.currentPrice) {
             throw new Error('Données insuffisantes');
         }
         
-        // Calculer les résultats
         const pastPrice = historicalData.pastPrice;
         const currentPrice = historicalData.currentPrice;
         const shares = amount / pastPrice;
@@ -120,7 +581,6 @@ async function timeTravel() {
         const returnPercent = ((currentValue - amount) / amount * 100).toFixed(2);
         const multiplier = (currentValue / amount).toFixed(2);
         
-        // Cacher l'overlay après 3 secondes
         setTimeout(() => {
             hideTimeWarp();
             displayTimeMachineResults(symbol, amount, years, pastPrice, currentPrice, currentValue, profit, returnPercent, multiplier, shares);
@@ -137,7 +597,6 @@ async function timeTravel() {
 
 async function fetchHistoricalData(symbol, years) {
     try {
-        // Essayer d'obtenir les données mensuelles
         const url = `${API_BASE}?function=TIME_SERIES_MONTHLY&symbol=${symbol}&apikey=${API_KEY}`;
         const response = await fetch(url);
         const data = await response.json();
@@ -146,10 +605,8 @@ async function fetchHistoricalData(symbol, years) {
             const timeSeries = data['Monthly Time Series'];
             const dates = Object.keys(timeSeries).sort();
             
-            // Prix actuel (le plus récent)
             const currentPrice = parseFloat(timeSeries[dates[dates.length - 1]]['4. close']);
             
-            // Prix dans le passé
             const targetDate = new Date();
             targetDate.setFullYear(targetDate.getFullYear() - years);
             
@@ -178,8 +635,7 @@ async function fetchHistoricalData(symbol, years) {
 function displayTimeMachineDemoResults(symbol, amount, years) {
     const resultsContainer = document.getElementById('timeMachineResults');
     
-    // Générer des données réalistes de démo
-    const growthRate = 0.08 + Math.random() * 0.12; // Entre 8% et 20% par an
+    const growthRate = 0.08 + Math.random() * 0.12;
     const currentValue = amount * Math.pow(1 + growthRate, years);
     const profit = currentValue - amount;
     const returnPercent = ((currentValue - amount) / amount * 100).toFixed(2);
@@ -271,7 +727,6 @@ function showTimeWarp(years) {
     
     overlay.classList.add('active');
     
-    // Compte à rebours des années
     const currentYear = new Date().getFullYear();
     let displayYear = currentYear;
     
@@ -772,7 +1227,6 @@ async function displayComparison() {
     
     container.innerHTML = '<div class="loading">Chargement de la comparaison...</div>';
     
-    // Créer le canvas pour le graphique de comparaison
     let comparisonHTML = `
         <div style="margin-bottom: 30px;">
             <h3 style="color: #8b6f8b; margin-bottom: 20px; font-weight: 300; text-align: center;">
@@ -808,7 +1262,6 @@ async function displayComparison() {
             const stockData = await fetchStockData(symbol);
             const isPositive = stockData.change >= 0;
             
-            // Récupérer les données historiques pour le graphique
             const historicalData = await fetchComparisonChartData(symbol);
             allDatesData.push({
                 symbol: symbol,
@@ -854,7 +1307,6 @@ async function displayComparison() {
         } catch (error) {
             console.error(`Erreur pour ${symbol}:`, error);
             
-            // Générer des données de démo pour le graphique
             const demoData = generateDemoChartData();
             allDatesData.push({
                 symbol: symbol,
@@ -867,7 +1319,6 @@ async function displayComparison() {
     comparisonHTML += '</div>';
     container.innerHTML = comparisonHTML;
     
-    // Créer le graphique de comparaison
     createComparisonChart(allDatesData);
 }
 
@@ -920,13 +1371,11 @@ function createComparisonChart(allDatesData) {
         comparisonChart.destroy();
     }
     
-    // Utiliser les dates du premier symbole comme référence
     const labels = allDatesData[0].data.dates.map(date => {
         const d = new Date(date);
         return `${d.getDate()}/${d.getMonth() + 1}`;
     });
     
-    // Normaliser les prix (démarrer à 100 pour chaque action)
     const datasets = allDatesData.map(stockData => {
         const firstPrice = stockData.data.prices[0];
         const normalizedPrices = stockData.data.prices.map(price => (price / firstPrice) * 100);
@@ -1045,7 +1494,6 @@ function clearComparison() {
     displayComparison();
 }
 
-// Retirer de la comparaison
 function removeFromComparison(symbol) {
     comparisonList = comparisonList.filter(s => s !== symbol);
     displayComparison();
@@ -1056,14 +1504,10 @@ function removeFromComparison(symbol) {
 // Récupérer les actualités financières
 async function fetchStockNews(symbol) {
     const newsContainer = document.querySelector('.news-container');
-    
-    newsContainer.innerHTML = `
-        <div class="loading">✨ Chargement des actualités pour ${symbol}...</div>
-    `;
+    newsContainer.innerHTML = `<div class="loading">✨ Chargement des actualités pour ${symbol}...</div>`;
     
     try {
         const newsUrl = `${API_BASE}?function=NEWS_SENTIMENT&tickers=${symbol}&apikey=${API_KEY}&limit=6`;
-        
         const response = await fetch(newsUrl);
         const data = await response.json();
         
@@ -1098,7 +1542,7 @@ function displayNews(symbol, newsItems) {
             const url = article.url || '#';
             
             let sentimentClass = 'sentiment-neutral';
-            let sentimentText = 'Neutre';
+            let sentimentText = 'Neutre 📊';
             
             if (article.overall_sentiment_label) {
                 const sentiment = article.overall_sentiment_label.toLowerCase();
@@ -1140,7 +1584,6 @@ function displayNews(symbol, newsItems) {
     newsContainer.innerHTML = newsHTML;
 }
 
-// Afficher des news génériques si l'API ne fonctionne pas
 function displayGenericNews(symbol) {
     const newsContainer = document.querySelector('.news-container');
     
@@ -1202,7 +1645,6 @@ function displayGenericNews(symbol) {
     newsContainer.innerHTML = newsHTML;
 }
 
-// Calculer le temps écoulé
 function getTimeAgo(date) {
     const now = new Date();
     const diffMs = now - date;
@@ -1221,7 +1663,6 @@ function getTimeAgo(date) {
     }
 }
 
-// Calculateur d'investissement
 async function calculateInvestment() {
     const symbol = document.getElementById('calcSymbol').value.trim().toUpperCase();
     const shares = parseInt(document.getElementById('calcShares').value);
@@ -1297,7 +1738,6 @@ async function calculateInvestment() {
     }
 }
 
-// Fonctions utilitaires
 function formatVolume(volume) {
     if (volume >= 1000000) {
         return (volume / 1000000).toFixed(2) + 'M';
@@ -1319,7 +1759,6 @@ function showError(message) {
     }, 3000);
 }
 
-// ===== GRAPHIQUE =====
 let stockChart = null;
 
 async function fetchAndDisplayChart(symbol) {
@@ -1467,7 +1906,6 @@ function createDemoChart(symbol) {
     document.getElementById('chartContainer').appendChild(note);
 }
 
-// ===== THEME TOGGLE =====
 function toggleTheme() {
     document.body.classList.toggle('dark-mode');
     const isDark = document.body.classList.contains('dark-mode');
