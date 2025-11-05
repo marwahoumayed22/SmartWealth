@@ -1,6 +1,5 @@
 // Configuration de l'API
-// On utilise Alpha Vantage (gratuit, 25 requêtes par jour)
-const API_KEY = 'NA2DSFA47SYVII1X'; // Tu devras créer ta propre clé sur alphavantage.co
+const API_KEY = 'NA2DSFA47SYVII1X';
 const API_BASE = 'https://www.alphavantage.co/query';
 
 // Stockage local du portefeuille
@@ -13,6 +12,9 @@ let canvas, ctx;
 let stars = [];
 let mouseX = 0, mouseY = 0;
 let animationId = null;
+
+// Variable pour le graphique de comparaison
+let comparisonChart = null;
 
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
@@ -38,9 +40,255 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('constellationToggle').addEventListener('click', toggleConstellation);
     initConstellation();
     
+    // Time Machine Toggle
+    document.getElementById('timeMachineToggle').addEventListener('click', toggleTimeMachine);
+    
+    // Time Machine
+    document.getElementById('timeTravelBtn').addEventListener('click', timeTravel);
+    
+    // Preset buttons pour Time Machine
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('tmSymbol').value = this.dataset.symbol;
+            document.getElementById('tmAmount').value = this.dataset.amount;
+            document.getElementById('tmYears').value = this.dataset.years;
+            timeTravel();
+        });
+    });
+    
     // Charger le portefeuille existant
     displayPortfolio();
 });
+
+// ===== TIME MACHINE =====
+
+function toggleTimeMachine() {
+    const section = document.getElementById('timeMachineSection');
+    const button = document.getElementById('timeMachineToggle');
+    
+    if (section.style.display === 'none' || section.style.display === '') {
+        section.style.display = 'block';
+        button.classList.add('active');
+        // Scroll vers la section
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        section.style.display = 'none';
+        button.classList.remove('active');
+    }
+}
+
+async function timeTravel() {
+    const symbol = document.getElementById('tmSymbol').value.trim().toUpperCase();
+    const amount = parseFloat(document.getElementById('tmAmount').value);
+    const years = parseInt(document.getElementById('tmYears').value);
+    const resultsContainer = document.getElementById('timeMachineResults');
+    
+    // Validation
+    if (!symbol) {
+        resultsContainer.innerHTML = '<div class="error-message">⏰ Veuillez entrer un symbole d\'action</div>';
+        return;
+    }
+    
+    if (!amount || amount <= 0) {
+        resultsContainer.innerHTML = '<div class="error-message">⏰ Veuillez entrer un montant valide</div>';
+        return;
+    }
+    
+    // Animation de voyage temporel
+    showTimeWarp(years);
+    
+    resultsContainer.innerHTML = '<div class="loading">⏰ Calcul du voyage temporel...</div>';
+    
+    try {
+        // Calculer la date passée
+        const pastDate = new Date();
+        pastDate.setFullYear(pastDate.getFullYear() - years);
+        
+        // Récupérer les données historiques
+        const historicalData = await fetchHistoricalData(symbol, years);
+        
+        if (!historicalData || !historicalData.pastPrice || !historicalData.currentPrice) {
+            throw new Error('Données insuffisantes');
+        }
+        
+        // Calculer les résultats
+        const pastPrice = historicalData.pastPrice;
+        const currentPrice = historicalData.currentPrice;
+        const shares = amount / pastPrice;
+        const currentValue = shares * currentPrice;
+        const profit = currentValue - amount;
+        const returnPercent = ((currentValue - amount) / amount * 100).toFixed(2);
+        const multiplier = (currentValue / amount).toFixed(2);
+        
+        // Cacher l'overlay après 3 secondes
+        setTimeout(() => {
+            hideTimeWarp();
+            displayTimeMachineResults(symbol, amount, years, pastPrice, currentPrice, currentValue, profit, returnPercent, multiplier, shares);
+        }, 3000);
+        
+    } catch (error) {
+        console.error('Erreur Time Machine:', error);
+        setTimeout(() => {
+            hideTimeWarp();
+            displayTimeMachineDemoResults(symbol, amount, years);
+        }, 3000);
+    }
+}
+
+async function fetchHistoricalData(symbol, years) {
+    try {
+        // Essayer d'obtenir les données mensuelles
+        const url = `${API_BASE}?function=TIME_SERIES_MONTHLY&symbol=${symbol}&apikey=${API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data['Monthly Time Series']) {
+            const timeSeries = data['Monthly Time Series'];
+            const dates = Object.keys(timeSeries).sort();
+            
+            // Prix actuel (le plus récent)
+            const currentPrice = parseFloat(timeSeries[dates[dates.length - 1]]['4. close']);
+            
+            // Prix dans le passé
+            const targetDate = new Date();
+            targetDate.setFullYear(targetDate.getFullYear() - years);
+            
+            let pastPrice = null;
+            for (let i = 0; i < dates.length; i++) {
+                const date = new Date(dates[i]);
+                if (date <= targetDate) {
+                    pastPrice = parseFloat(timeSeries[dates[i]]['4. close']);
+                    break;
+                }
+            }
+            
+            if (pastPrice) {
+                return { pastPrice, currentPrice };
+            }
+        }
+        
+        throw new Error('Données historiques non disponibles');
+        
+    } catch (error) {
+        console.error('Erreur récupération données historiques:', error);
+        return null;
+    }
+}
+
+function displayTimeMachineDemoResults(symbol, amount, years) {
+    const resultsContainer = document.getElementById('timeMachineResults');
+    
+    // Générer des données réalistes de démo
+    const growthRate = 0.08 + Math.random() * 0.12; // Entre 8% et 20% par an
+    const currentValue = amount * Math.pow(1 + growthRate, years);
+    const profit = currentValue - amount;
+    const returnPercent = ((currentValue - amount) / amount * 100).toFixed(2);
+    const multiplier = (currentValue / amount).toFixed(2);
+    
+    const pastPrice = 100 + Math.random() * 50;
+    const currentPrice = pastPrice * (currentValue / amount);
+    const shares = amount / pastPrice;
+    
+    displayTimeMachineResults(symbol, amount, years, pastPrice, currentPrice, currentValue, profit, returnPercent, multiplier, shares, true);
+}
+
+function displayTimeMachineResults(symbol, amount, years, pastPrice, currentPrice, currentValue, profit, returnPercent, multiplier, shares, isDemo = false) {
+    const resultsContainer = document.getElementById('timeMachineResults');
+    
+    const isProfit = profit >= 0;
+    const pastYear = new Date().getFullYear() - years;
+    
+    const resultHTML = `
+        <div class="time-result-card">
+            ${isDemo ? '<div style="background: rgba(255, 165, 0, 0.1); padding: 10px; border-radius: 10px; margin-bottom: 20px; text-align: center;"><small style="color: #ff8c00;">💡 <em>Résultats simulés (données de démonstration)</em></small></div>' : ''}
+            
+            <div class="time-result-header">
+                <div class="time-result-title">⏰ Voyage Temporel : ${symbol}</div>
+                <div class="time-result-journey">
+                    ${pastYear} → ${new Date().getFullYear()} (${years} an${years > 1 ? 's' : ''})
+                </div>
+            </div>
+            
+            <div class="time-result-main">
+                <div class="time-result-label">Votre investissement de $${amount.toFixed(2)} serait maintenant :</div>
+                <div class="time-result-value">$${currentValue.toFixed(2)}</div>
+                <div class="time-result-multiplier" style="color: ${isProfit ? '#28a745' : '#dc3545'}">
+                    ${isProfit ? '✨' : '📉'} ${multiplier}x votre investissement initial
+                </div>
+            </div>
+            
+            <div class="time-result-details">
+                <div class="time-detail-box">
+                    <div class="time-detail-label">Prix en ${pastYear}</div>
+                    <div class="time-detail-value">$${pastPrice.toFixed(2)}</div>
+                </div>
+                
+                <div class="time-detail-box">
+                    <div class="time-detail-label">Prix actuel</div>
+                    <div class="time-detail-value">$${currentPrice.toFixed(2)}</div>
+                </div>
+                
+                <div class="time-detail-box">
+                    <div class="time-detail-label">Actions achetées</div>
+                    <div class="time-detail-value">${shares.toFixed(2)}</div>
+                </div>
+                
+                <div class="time-detail-box">
+                    <div class="time-detail-label">Rendement total</div>
+                    <div class="time-detail-value" style="color: ${isProfit ? '#28a745' : '#dc3545'}">
+                        ${isProfit ? '+' : ''}${returnPercent}%
+                    </div>
+                </div>
+                
+                <div class="time-detail-box">
+                    <div class="time-detail-label">${isProfit ? 'Profit réalisé' : 'Perte'}</div>
+                    <div class="time-detail-value" style="color: ${isProfit ? '#28a745' : '#dc3545'}">
+                        ${isProfit ? '+' : ''}$${profit.toFixed(2)}
+                    </div>
+                </div>
+                
+                <div class="time-detail-box">
+                    <div class="time-detail-label">Rendement annuel</div>
+                    <div class="time-detail-value">${(returnPercent / years).toFixed(2)}%/an</div>
+                </div>
+            </div>
+            
+            <div class="time-result-message ${isProfit ? '' : 'negative'}">
+                ${isProfit ? 
+                    `🎉 Félicitations ! Si vous aviez investi $${amount.toFixed(2)} dans ${symbol} il y a ${years} an${years > 1 ? 's' : ''}, vous auriez gagné $${profit.toFixed(2)} ! C'est ${multiplier}x votre investissement initial !` :
+                    `😔 Si vous aviez investi $${amount.toFixed(2)} dans ${symbol} il y a ${years} an${years > 1 ? 's' : ''}, vous auriez perdu $${Math.abs(profit).toFixed(2)}. Mais rappelez-vous : les marchés fluctuent !`
+                }
+            </div>
+        </div>
+    `;
+    
+    resultsContainer.innerHTML = resultHTML;
+}
+
+function showTimeWarp(years) {
+    const overlay = document.getElementById('timeWarpOverlay');
+    const yearDisplay = overlay.querySelector('.time-warp-year');
+    
+    overlay.classList.add('active');
+    
+    // Compte à rebours des années
+    const currentYear = new Date().getFullYear();
+    let displayYear = currentYear;
+    
+    const countdown = setInterval(() => {
+        displayYear--;
+        yearDisplay.textContent = displayYear;
+        
+        if (displayYear <= currentYear - years) {
+            clearInterval(countdown);
+        }
+    }, 300);
+}
+
+function hideTimeWarp() {
+    const overlay = document.getElementById('timeWarpOverlay');
+    overlay.classList.remove('active');
+}
 
 // ===== MODE CONSTELLATION =====
 
@@ -48,17 +296,14 @@ function initConstellation() {
     canvas = document.getElementById('constellationCanvas');
     ctx = canvas.getContext('2d');
     
-    // Ajuster la taille du canvas
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
-    // Suivre la souris
     canvas.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
     });
     
-    // Créer les étoiles initiales
     createStars(150);
 }
 
@@ -82,12 +327,10 @@ function createStars(count) {
         });
     }
     
-    // Ajouter des étoiles pour le portefeuille
     addPortfolioStars();
 }
 
 function addPortfolioStars() {
-    // Créer des étoiles spéciales pour chaque action du portefeuille
     portfolio.forEach((symbol, index) => {
         const angle = (index / portfolio.length) * Math.PI * 2;
         const radius = Math.min(canvas.width, canvas.height) * 0.25;
@@ -115,14 +358,11 @@ function addPortfolioStars() {
 function animateConstellation() {
     if (!constellationMode) return;
     
-    // Fond sombre avec traînée
     ctx.fillStyle = 'rgba(10, 14, 39, 0.1)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Mettre à jour et dessiner les étoiles
     stars.forEach((star, index) => {
         if (star.isStock) {
-            // Étoiles du portefeuille - orbite circulaire
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             const angle = Math.atan2(star.y - centerY, star.x - centerX);
@@ -132,7 +372,6 @@ function animateConstellation() {
             star.x = centerX + Math.cos(newAngle) * radius;
             star.y = centerY + Math.sin(newAngle) * radius;
             
-            // Effet de souris - attraction
             const dx = mouseX - star.x;
             const dy = mouseY - star.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
@@ -142,10 +381,8 @@ function animateConstellation() {
                 star.y += dy * 0.01;
             }
             
-            // Dessiner l'étoile du portefeuille (plus grande et colorée)
             ctx.save();
             
-            // Halo
             const gradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 4);
             gradient.addColorStop(0, star.color + 'aa');
             gradient.addColorStop(1, star.color + '00');
@@ -154,7 +391,6 @@ function animateConstellation() {
             ctx.arc(star.x, star.y, star.size * 4, 0, Math.PI * 2);
             ctx.fill();
             
-            // Étoile principale
             ctx.fillStyle = star.color;
             ctx.shadowBlur = 20;
             ctx.shadowColor = star.color;
@@ -162,7 +398,6 @@ function animateConstellation() {
             ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
             ctx.fill();
             
-            // Symbole de l'action
             ctx.shadowBlur = 0;
             ctx.fillStyle = 'white';
             ctx.font = '12px Georgia';
@@ -172,21 +407,17 @@ function animateConstellation() {
             ctx.restore();
             
         } else {
-            // Étoiles normales
             star.x += star.speedX;
             star.y += star.speedY;
             
-            // Rebond sur les bords
             if (star.x < 0 || star.x > canvas.width) star.speedX *= -1;
             if (star.y < 0 || star.y > canvas.height) star.speedY *= -1;
             
-            // Effet de scintillement
             star.opacity += star.twinkleSpeed;
             if (star.opacity >= 1 || star.opacity <= 0.3) {
                 star.twinkleSpeed *= -1;
             }
             
-            // Dessiner l'étoile normale
             ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
             ctx.beginPath();
             ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
@@ -194,7 +425,6 @@ function animateConstellation() {
         }
     });
     
-    // Connecter les étoiles du portefeuille entre elles
     const stockStars = stars.filter(s => s.isStock);
     for (let i = 0; i < stockStars.length; i++) {
         for (let j = i + 1; j < stockStars.length; j++) {
@@ -214,7 +444,6 @@ function animateConstellation() {
         }
     }
     
-    // Connecter les étoiles normales proches
     for (let i = 0; i < stars.length - 1; i++) {
         if (stars[i].isStock) continue;
         
@@ -245,7 +474,7 @@ function toggleConstellation() {
     
     if (constellationMode) {
         document.body.classList.add('constellation-mode');
-        createStars(150); // Recréer les étoiles avec le portefeuille actuel
+        createStars(150);
         animateConstellation();
         console.log('🌌 Mode Constellation activé');
     } else {
@@ -254,7 +483,6 @@ function toggleConstellation() {
             cancelAnimationFrame(animationId);
             animationId = null;
         }
-        // Nettoyer le canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         console.log('✨ Mode Normal activé');
     }
@@ -277,13 +505,9 @@ async function searchStock() {
         const stockData = await fetchStockData(symbol);
         displayStockCard(stockData, 'searchResults');
         
-        // Charger les news pour cette action
         fetchStockNews(symbol);
-        
-        // Charger le graphique
         fetchAndDisplayChart(symbol);
     } catch (error) {
-        // Si l'API ne marche pas, afficher quand même des données de démo
         console.error('Erreur API:', error);
         displayDemoStock(symbol);
     }
@@ -411,7 +635,6 @@ async function addToPortfolio(symbol) {
     localStorage.setItem('portfolio', JSON.stringify(portfolio));
     displayPortfolio();
     
-    // Mettre à jour les étoiles du mode constellation
     if (constellationMode) {
         createStars(150);
     }
@@ -434,7 +657,6 @@ async function displayPortfolio() {
     
     for (const symbol of portfolio) {
         try {
-            // Essayer de récupérer les vraies données
             const stockData = await fetchStockData(symbol);
             const isPositive = stockData.change >= 0;
             
@@ -462,8 +684,7 @@ async function displayPortfolio() {
                 </div>
             `;
         } catch (error) {
-            // Si l'API ne marche pas, afficher avec des données de démo
-            console.error(`Erreur pour ${symbol}, utilisation des données de démo:`, error);
+            console.error(`Erreur pour ${symbol}:`, error);
             
             const basePrice = 150 + Math.random() * 100;
             const change = (Math.random() - 0.5) * 5;
@@ -506,7 +727,6 @@ function removeFromPortfolio(symbol) {
     localStorage.setItem('portfolio', JSON.stringify(portfolio));
     displayPortfolio();
     
-    // Mettre à jour les étoiles du mode constellation
     if (constellationMode) {
         createStars(150);
     }
@@ -519,17 +739,17 @@ function clearPortfolio() {
         localStorage.setItem('portfolio', JSON.stringify(portfolio));
         displayPortfolio();
         
-        // Mettre à jour les étoiles du mode constellation
         if (constellationMode) {
             createStars(150);
         }
     }
 }
 
-// Ajouter à la comparaison
+// ===== COMPARAISON AVEC GRAPHIQUE =====
+
 async function addToComparison(symbol) {
-    if (comparisonList.length >= 3) {
-        showError('Vous pouvez comparer maximum 3 actions à la fois');
+    if (comparisonList.length >= 5) {
+        showError('Vous pouvez comparer maximum 5 actions à la fois');
         return;
     }
     
@@ -542,29 +762,67 @@ async function addToComparison(symbol) {
     displayComparison();
 }
 
-// Afficher la comparaison
 async function displayComparison() {
     const container = document.getElementById('comparisonArea');
     
     if (comparisonList.length === 0) {
-        container.innerHTML = '<p class="empty-state">Recherchez des actions pour commencer à les comparer</p>';
+        container.innerHTML = '<p class="empty-state">Sélectionnez des actions pour les comparer en douceur</p>';
         return;
     }
     
     container.innerHTML = '<div class="loading">Chargement de la comparaison...</div>';
     
-    let comparisonHTML = '<div class="comparison-grid">';
+    // Créer le canvas pour le graphique de comparaison
+    let comparisonHTML = `
+        <div style="margin-bottom: 30px;">
+            <h3 style="color: #8b6f8b; margin-bottom: 20px; font-weight: 300; text-align: center;">
+                📊 Comparaison Graphique
+            </h3>
+            <div style="background: rgba(255, 250, 250, 0.5); padding: 20px; border-radius: 15px; border: 2px dashed rgba(212, 165, 165, 0.3);">
+                <canvas id="comparisonChart" style="max-height: 400px;"></canvas>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 20px; text-align: center;">
+            <button onclick="clearComparison()" style="padding: 12px 25px; background: linear-gradient(135deg, #e8c1c1 0%, #d4a5a5 100%); font-size: 0.95em;">
+                🗑️ Vider la comparaison
+            </button>
+        </div>
+        
+        <div class="comparison-grid">
+    `;
     
-    for (const symbol of comparisonList) {
+    const colors = [
+        '#d4a5a5',
+        '#c9a0dc',
+        '#a8c9a8',
+        '#ffa500',
+        '#ff6b9d'
+    ];
+    
+    const allDatesData = [];
+    
+    for (let i = 0; i < comparisonList.length; i++) {
+        const symbol = comparisonList[i];
         try {
             const stockData = await fetchStockData(symbol);
             const isPositive = stockData.change >= 0;
             
+            // Récupérer les données historiques pour le graphique
+            const historicalData = await fetchComparisonChartData(symbol);
+            allDatesData.push({
+                symbol: symbol,
+                data: historicalData,
+                color: colors[i]
+            });
+            
             comparisonHTML += `
-                <div class="stock-card">
+                <div class="stock-card" style="border-left-color: ${colors[i]};">
                     <div class="stock-header">
                         <div>
-                            <div class="stock-symbol">${stockData.symbol}</div>
+                            <div class="stock-symbol" style="background: linear-gradient(135deg, ${colors[i]}, ${colors[i]}cc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                                ${stockData.symbol}
+                            </div>
                         </div>
                         <div class="stock-price">$${stockData.price.toFixed(2)}</div>
                     </div>
@@ -595,11 +853,196 @@ async function displayComparison() {
             `;
         } catch (error) {
             console.error(`Erreur pour ${symbol}:`, error);
+            
+            // Générer des données de démo pour le graphique
+            const demoData = generateDemoChartData();
+            allDatesData.push({
+                symbol: symbol,
+                data: demoData,
+                color: colors[i]
+            });
         }
     }
     
     comparisonHTML += '</div>';
     container.innerHTML = comparisonHTML;
+    
+    // Créer le graphique de comparaison
+    createComparisonChart(allDatesData);
+}
+
+async function fetchComparisonChartData(symbol) {
+    try {
+        const chartUrl = `${API_BASE}?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`;
+        const response = await fetch(chartUrl);
+        const data = await response.json();
+        
+        const timeSeries = data['Time Series (Daily)'];
+        
+        if (!timeSeries) {
+            return generateDemoChartData();
+        }
+        
+        const dates = Object.keys(timeSeries).slice(0, 30).reverse();
+        const prices = dates.map(date => parseFloat(timeSeries[date]['4. close']));
+        
+        return { dates, prices };
+        
+    } catch (error) {
+        console.error('Erreur graphique comparaison:', error);
+        return generateDemoChartData();
+    }
+}
+
+function generateDemoChartData() {
+    const today = new Date();
+    const dates = [];
+    const basePrice = 150 + Math.random() * 100;
+    const prices = [];
+    
+    for (let i = 29; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        dates.push(date.toISOString().split('T')[0]);
+        
+        const variation = (Math.random() - 0.5) * 10;
+        const price = i === 29 ? basePrice : prices[prices.length - 1] + variation;
+        prices.push(Math.max(price, basePrice * 0.8));
+    }
+    
+    return { dates, prices };
+}
+
+function createComparisonChart(allDatesData) {
+    const ctx = document.getElementById('comparisonChart').getContext('2d');
+    
+    if (comparisonChart) {
+        comparisonChart.destroy();
+    }
+    
+    // Utiliser les dates du premier symbole comme référence
+    const labels = allDatesData[0].data.dates.map(date => {
+        const d = new Date(date);
+        return `${d.getDate()}/${d.getMonth() + 1}`;
+    });
+    
+    // Normaliser les prix (démarrer à 100 pour chaque action)
+    const datasets = allDatesData.map(stockData => {
+        const firstPrice = stockData.data.prices[0];
+        const normalizedPrices = stockData.data.prices.map(price => (price / firstPrice) * 100);
+        
+        return {
+            label: stockData.symbol,
+            data: normalizedPrices,
+            borderColor: stockData.color,
+            backgroundColor: stockData.color + '20',
+            borderWidth: 3,
+            fill: false,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: stockData.color,
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 2
+        };
+    });
+    
+    comparisonChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#8b7d8b',
+                        font: {
+                            family: 'Georgia',
+                            size: 14
+                        },
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderWidth: 2,
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + ' (base 100)';
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Performance Relative (Base 100)',
+                    color: '#8b6f8b',
+                    font: {
+                        family: 'Georgia',
+                        size: 16,
+                        weight: '300'
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#8b7d8b',
+                        maxRotation: 0,
+                        autoSkipPadding: 20,
+                        font: {
+                            family: 'Georgia'
+                        }
+                    }
+                },
+                y: {
+                    grid: {
+                        color: 'rgba(212, 165, 165, 0.1)'
+                    },
+                    ticks: {
+                        color: '#8b7d8b',
+                        font: {
+                            family: 'Georgia'
+                        },
+                        callback: function(value) {
+                            return value.toFixed(0);
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Performance (%)',
+                        color: '#8b7d8b',
+                        font: {
+                            family: 'Georgia',
+                            size: 14
+                        }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+}
+
+function clearComparison() {
+    comparisonList = [];
+    displayComparison();
 }
 
 // Retirer de la comparaison
@@ -607,6 +1050,8 @@ function removeFromComparison(symbol) {
     comparisonList = comparisonList.filter(s => s !== symbol);
     displayComparison();
 }
+
+// ===== FIN COMPARAISON =====
 
 // Récupérer les actualités financières
 async function fetchStockNews(symbol) {
@@ -1013,34 +1458,6 @@ function createDemoChart(symbol) {
         const price = i === 29 ? basePrice : prices[prices.length - 1] + variation;
         prices.push(Math.max(price, basePrice * 0.8));
     }
-    
-    createChart(symbol, dates, prices);
-    
-    const note = document.createElement('p');
-    note.style.cssText = 'text-align: center; color: #8b7d8b; font-size: 0.85em; margin-top: 10px; font-style: italic;';
-    note.textContent = '💡 Données illustratives pour démonstration';
-    document.getElementById('chartContainer').appendChild(note);
-}
-
-// ===== THEME TOGGLE =====
-function toggleTheme() {
-    document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    
-    const toggleBtn = document.getElementById('themeToggle');
-    toggleBtn.style.transform = 'rotate(360deg)';
-    setTimeout(() => {
-        toggleBtn.style.transform = 'rotate(0deg)';
-    }, 400);
-}
-
-function loadTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
-}
     
     createChart(symbol, dates, prices);
     
