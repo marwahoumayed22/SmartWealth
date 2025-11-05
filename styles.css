@@ -351,6 +351,7 @@ body.battle-mode section h2 {
     color: #ff6347;
     border-image: linear-gradient(90deg, #dc143c, #ff4500) 1;
 }
+
 /* ===== BATTLE ROYALE STYLES ===== */
 
 .battle-section {
@@ -862,6 +863,419 @@ body.battle-mode .news-time {
 
 /* ===== FIN NEWS STYLES ===== */
 
+/* ===== CALCULATOR STYLES ===== */
+
+.calculator-container {
+    background: rgba(255, 250, 250, 0.5);
+    padding: 30px;
+    border-radius: 20px;
+    border: 2px dashed rgba(212, 165, 165, 0.3);
+}
+
+body.constellation-mode .calculator-container {
+    background: rgba(30, 35, 55, 0.5);
+    border: 2px dashed rgba(138, 43, 226, 0.3);
+}
+
+body.battle-mode .calculator-container {
+    background: rgba(45, 20, 20, 0.5);
+    border: 2px dashed rgba(220, 20, 60, 0.3);
+}
+
+.calculator-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.input-group label {
+    font-size: 1.1em;
+    color: #8b7d8b;
+    font-weight: 500;
+}
+
+body.constellation-mode .input-group label {
+    color: #b8a0c0;
+}
+
+body.battle-mode .input-group label {
+    color: #ff8c69;
+}
+
+.input-group input,
+.input-group select {
+    padding: 15px;
+    font-size: 1.1em;
+    border: 2px solid rgba(212, 165, 165, 0.3);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    font-family: 'Georgia', serif;
+    transition: all 0.3s;
+}
+
+body.constellation-mode .input-group input,
+body.constellation-mode .input-group select {
+    background: rgba(30, 35, 55, 0.8);
+    border: 2px solid rgba(138, 43, 226, 0.3);
+    color: #e8dfe8;
+}
+
+body.battle-mode .input-group input,
+body.battle-mode .input-group select {
+    background: rgba(45, 20, 20, 0.8);
+    border: 2px solid rgba(220, 20, 60, 0.3);
+    color: #ff6347;
+}
+
+.input-group input:focus,
+.input-group select:focus {
+    outline: none;
+    border-color: #c9a0dc;
+    box-shadow: 0 0 20px rgba(201, 160, 220, 0.3);
+    background: white;
+}
+
+.calc-btn {
+    width: 100%;
+    padding: 18px;
+    font-size: 1.2em;
+    background: linear-gradient(135deg, #c9a0dc 0%, #d4a5a5 100%);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.4s;
+    font-weight: bold;
+    box-shadow: 0 8px 25px rgba(201, 160, 220, 0.4);
+}
+
+.calc-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(201, 160, 220, 0.6);
+    background: linear-gradient(135deg, #d4a5a5 0%, #c9a0dc 100%);
+}
+
+.calculator-results {
+    margin-top: 30px;
+}
+
+.result-card {
+    background: linear-gradient(135deg, rgba(255, 250, 250, 0.95) 0%, rgba(255, 240, 245, 0.95) 100%);
+    padding: 30px;
+    border-radius: 20px;
+    border-left: 5px solid #c9a0dc;
+    box-shadow: 0 10px 30px rgba(201, 160, 220, 0.2);
+}
+
+body.constellation-mode .result-card {
+    background: linear-gradient(135deg, rgba(30, 35, 55, 0.95) 0%, rgba(40, 45, 65, 0.95) 100%);
+    border-left: 5px solid #9d7bb3;
+}
+
+body.battle-mode .result-card {
+    background: linear-gradient(135deg, rgba(45, 20, 20, 0.95) 0%, rgba(55, 25, 25, 0.95) 100%);
+    border-left: 5px solid #dc143c;
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(201, 160, 220, 0.3);
+}
+
+.result-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #8b6f8b;
+}
+
+body.constellation-mode .result-title {
+    color: #d4a5a5;
+}
+
+body.battle-mode .result-title {
+    color: #ff6347;
+}
+
+.result-total {
+    font-size: 2em;
+    font-weight: bold;
+    background: linear-gradient(135deg, #c9a0dc 0%, #d4a5a5 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.result-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.result-item {
+    background: rgba(255, 255, 255, 0.6);
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+body.constellation-mode .result-item {
+    background: rgba(30, 35, 55, 0.6);
+}
+
+body.battle-mode .result-item {
+    background: rgba(45, 20, 20, 0.6);
+}
+
+.result-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(201, 160, 220, 0.3);
+}
+
+.result-label {
+    font-size: 0.9em;
+    color: #8b7d8b;
+    margin-bottom: 10px;
+}
+
+body.constellation-mode .result-label {
+    color: #b8a0c0;
+}
+
+body.battle-mode .result-label {
+    color: #ff8c69;
+}
+
+.result-value {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #5d4e5d;
+}
+
+body.constellation-mode .result-value {
+    color: #e8dfe8;
+}
+
+body.battle-mode .result-value {
+    color: #ff6347;
+}
+
+.investment-tip {
+    background: rgba(201, 160, 220, 0.15);
+    padding: 20px;
+    border-radius: 15px;
+    border-left: 4px solid #c9a0dc;
+    color: #8b7d8b;
+    font-style: italic;
+    line-height: 1.6;
+}
+
+body.constellation-mode .investment-tip {
+    background: rgba(138, 43, 226, 0.15);
+    border-left: 4px solid #9d7bb3;
+    color: #b8a0c0;
+}
+
+body.battle-mode .investment-tip {
+    background: rgba(220, 20, 60, 0.15);
+    border-left: 4px solid #dc143c;
+    color: #ff8c69;
+}
+
+/* ===== TIME MACHINE STYLES ===== */
+
+.time-machine-container {
+    background: rgba(255, 250, 250, 0.5);
+    padding: 30px;
+    border-radius: 20px;
+    border: 2px dashed rgba(255, 165, 0, 0.3);
+}
+
+.time-machine-intro {
+    text-align: center;
+    font-size: 1.1em;
+    color: #ff8c00;
+    font-style: italic;
+    padding: 20px;
+    background: rgba(255, 165, 0, 0.1);
+    border-radius: 15px;
+    margin-bottom: 25px;
+}
+
+.time-machine-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.time-travel-btn {
+    width: 100%;
+    padding: 20px;
+    font-size: 1.3em;
+    background: linear-gradient(135deg, #ff8c00 0%, #ffa500 100%);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.4s;
+    font-weight: bold;
+    box-shadow: 0 8px 25px rgba(255, 140, 0, 0.4);
+}
+
+.time-travel-btn:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 35px rgba(255, 140, 0, 0.6);
+    background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+}
+
+.time-machine-results {
+    margin-top: 30px;
+}
+
+.time-result-card {
+    background: linear-gradient(135deg, rgba(255, 250, 240, 0.95) 0%, rgba(255, 245, 230, 0.95) 100%);
+    padding: 30px;
+    border-radius: 20px;
+    border: 3px solid rgba(255, 165, 0, 0.3);
+    box-shadow: 0 10px 30px rgba(255, 140, 0, 0.2);
+}
+
+.time-result-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.time-result-title {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #ff8c00;
+    margin-bottom: 10px;
+}
+
+.time-result-journey {
+    font-size: 1.2em;
+    color: #8b7d8b;
+    font-style: italic;
+}
+
+.time-result-main {
+    text-align: center;
+    margin: 30px 0;
+    padding: 25px;
+    background: rgba(255, 165, 0, 0.1);
+    border-radius: 15px;
+}
+
+.time-result-label {
+    font-size: 1.1em;
+    color: #8b7d8b;
+    margin-bottom: 15px;
+}
+
+.time-result-value {
+    font-size: 3em;
+    font-weight: bold;
+    background: linear-gradient(135deg, #ff8c00 0%, #ffa500 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
+}
+
+.time-result-multiplier {
+    font-size: 1.3em;
+    font-weight: bold;
+}
+
+.time-result-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.time-detail-box {
+    background: rgba(255, 255, 255, 0.7);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.time-detail-label {
+    font-size: 0.9em;
+    color: #8b7d8b;
+    margin-bottom: 10px;
+}
+
+.time-detail-value {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #ff8c00;
+}
+
+.time-result-message {
+    background: rgba(255, 215, 0, 0.2);
+    padding: 20px;
+    border-radius: 15px;
+    border-left: 4px solid #ffa500;
+    color: #8b7d8b;
+    font-size: 1.1em;
+    line-height: 1.6;
+}
+
+.time-result-message.negative {
+    background: rgba(220, 20, 60, 0.15);
+    border-left: 4px solid #dc143c;
+}
+
+.time-machine-presets {
+    margin-top: 30px;
+}
+
+.time-machine-presets h3 {
+    color: #ff8c00;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.preset-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.preset-btn {
+    padding: 15px 20px;
+    background: linear-gradient(135deg, rgba(255, 165, 0, 0.2) 0%, rgba(255, 140, 0, 0.2) 100%);
+    border: 2px solid rgba(255, 165, 0, 0.4);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: #ff8c00;
+    font-weight: bold;
+}
+
+.preset-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 165, 0, 0.4) 0%, rgba(255, 140, 0, 0.4) 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(255, 140, 0, 0.3);
+}
+
+/* ===== FIN CALCULATOR & TIME MACHINE STYLES ===== */
+
 /* Search box */
 .search-box {
     display: flex;
@@ -1276,6 +1690,14 @@ body.battle-mode .loading {
     }
     
     .fighter-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .result-details {
+        grid-template-columns: 1fr;
+    }
+    
+    .time-result-details {
         grid-template-columns: 1fr;
     }
 }
