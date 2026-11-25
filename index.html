@@ -1,206 +1,145 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>✨ Mon Espace Finance Zen</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Tableau de bord boursier : recherche d'actions, graphiques, actualités et suivi de portefeuille.">
+    <title>✨ Mon Espace Finance Zen</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<!-- Canvas pour le mode constellation -->
-<canvas id="constellationCanvas"></canvas>
+    <div class="container">
+        <header>
+            <button id="apiKeyBtn" class="header-btn api-key-btn" aria-label="Configurer la clé API" title="Clé API">🔑</button>
+            <button id="themeToggle" class="theme-toggle" aria-label="Changer de thème">
+                <span class="sun">☀️</span>
+                <span class="moon">🌙</span>
+            </button>
+            <h1>✨ Mon Espace Finance Zen ✨</h1>
+            <p class="subtitle">Investissez avec sérénité et élégance</p>
+        </header>
 
-<!-- Canvas pour le Battle Royale -->
-<canvas id="battleCanvas"></canvas>
+        <main>
+            <!-- Clé API -->
+            <section id="apiKeySection" class="api-key-section" hidden>
+                <h2>🔑 Votre clé API</h2>
+                <p class="section-intro">
+                    Les données viennent d'Alpha Vantage. Entrez votre clé gratuite
+                    (<a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener noreferrer">en obtenir une</a>).
+                    Elle reste uniquement dans votre navigateur.
+                </p>
+                <form id="apiKeyForm" class="inline-form">
+                    <label for="apiKeyInput" class="visually-hidden">Clé API</label>
+                    <input type="password" id="apiKeyInput" placeholder="Votre clé Alpha Vantage" autocomplete="off" required>
+                    <button type="submit">Enregistrer</button>
+                </form>
+                <button id="demoKeyBtn" class="secondary-btn demo-btn" type="button">
+                    Essayer avec la clé « demo » (symbole IBM seulement)
+                </button>
+            </section>
 
-<div class="container">
-<header>
-<button id="themeToggle" class="theme-toggle" aria-label="Changer de thème">
-<span class="sun">☀️</span>
-<span class="moon">🌙</span>
-</button>
+            <!-- Section de recherche -->
+            <section class="search-section">
+                <h2>🔍 Découvrir une action</h2>
+                <div class="search-box">
+                    <label for="stockSearch" class="visually-hidden">Symbole de l'action</label>
+                    <input
+                        type="text"
+                        id="stockSearch"
+                        placeholder="Entrez un symbole (ex: AAPL, MSFT, GOOGL)"
+                    >
+                    <button id="searchBtn">Rechercher</button>
+                </div>
+                <div id="searchMessage" aria-live="polite"></div>
+                <div id="searchResults"></div>
+                <div id="chartContainer" style="display: none;">
+                    <h3 class="chart-title">📈 Évolution du Prix (30 derniers jours)</h3>
+                    <canvas id="stockChart"></canvas>
+                    <p id="chartMessage" class="chart-message"></p>
+                </div>
+            </section>
 
-<!-- Bouton Mode Constellation -->
-<button id="constellationToggle" class="constellation-toggle" aria-label="Mode Constellation">
-<span class="icon">🌌</span>
-</button>
+            <!-- Mon portefeuille -->
+            <section class="portfolio-section" id="portfolioSection">
+                <h2>💎 Mon Portefeuille Personnel</h2>
 
-<!-- Bouton Time Machine -->
-<button id="timeMachineToggle" class="time-machine-toggle" aria-label="Time Machine">
-<span class="icon">⏰</span>
-</button>
+                <form id="positionForm" class="position-form" novalidate>
+                    <div class="input-group">
+                        <label for="posSymbol">Symbole</label>
+                        <input type="text" id="posSymbol" placeholder="Ex: AAPL" autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <label for="posShares">Quantité</label>
+                        <input type="text" id="posShares" inputmode="decimal" placeholder="Ex: 10">
+                    </div>
+                    <div class="input-group">
+                        <label for="posPrice">Prix d'achat ($ US)</label>
+                        <input type="text" id="posPrice" inputmode="decimal" placeholder="Optionnel" title="Laissez vide pour utiliser le prix actuel">
+                    </div>
+                    <button type="submit" class="add-position-btn">➕ Ajouter</button>
+                </form>
+                <div id="portfolioMessage" aria-live="polite"></div>
 
-<!-- Bouton Battle Royale -->
-<button id="battleToggle" class="battle-toggle" aria-label="Battle Royale">
-<span class="icon">⚔️</span>
-</button>
+                <div id="portfolioSummary"></div>
 
-<h1>✨ Mon Espace Finance Zen ✨</h1>
-<p class="subtitle">Investissez avec sérénité et élégance</p>
-</header>
+                <div class="portfolio-layout">
+                    <div id="portfolioList">
+                        <p class="empty-state">Votre espace est vide. Ajoutez vos premières actions ✨</p>
+                    </div>
+                    <div id="allocationContainer" class="allocation-container" hidden>
+                        <h3 class="chart-title">🥧 Répartition</h3>
+                        <canvas id="allocationChart" aria-label="Répartition du portefeuille par action" role="img"></canvas>
+                    </div>
+                </div>
 
-<main>
-<!-- SECTION : Battle Royale -->
-<section class="battle-section" id="battleSection" style="display: none;">
-<h2>⚔️ Battle Royale des Actions</h2>
-<div class="battle-container">
-<div class="battle-intro">
-<p>🎮 Vos actions s'affrontent dans l'arène ! Regardez-les combattre en temps réel selon leurs performances !</p>
-</div>
+                <button id="clearPortfolioBtn" class="secondary-btn">Réinitialiser le portefeuille</button>
+            </section>
 
-<div class="battle-controls">
-<button id="startBattleBtn" class="battle-btn">
-🚀 LANCER LE COMBAT !
-</button>
-<button id="stopBattleBtn" class="battle-btn stop-btn" style="display: none;">
-⏸️ ARRÊTER LE COMBAT
-</button>
-</div>
+            <!-- Section de comparaison -->
+            <section class="comparison-section">
+                <h2>🌸 Comparer mes actions</h2>
+                <div id="comparisonArea">
+                    <p class="empty-state">Sélectionnez des actions pour les comparer en douceur</p>
+                </div>
+            </section>
 
-<div id="battleArena" class="battle-arena">
-<p class="empty-state">Ajoutez des actions à votre portefeuille pour démarrer le combat ! ⚔️</p>
-</div>
+            <!-- News financières -->
+            <section class="news-section">
+                <h2>📰 Actualités Financières</h2>
+                <div class="news-container">
+                    <p class="empty-state">Recherchez une action pour voir ses actualités récentes ✨</p>
+                </div>
+            </section>
 
-<div id="battleLeaderboard" class="battle-leaderboard" style="display: none;">
-<h3>🏆 Classement de l'Arène</h3>
-<div id="leaderboardList"></div>
-</div>
-</div>
-</section>
+            <!-- Calculateur d'investissement -->
+            <section class="calculator-section">
+                <h2>✨ Calculateur d'Investissement</h2>
+                <p class="section-intro">Simulez un achat avant de l'ajouter à votre portefeuille.</p>
+                <div class="calculator-container">
+                    <div class="calculator-inputs">
+                        <div class="input-group">
+                            <label for="calcSymbol">Symbole de l'action</label>
+                            <input type="text" id="calcSymbol" placeholder="Ex: AAPL">
+                        </div>
+                        <div class="input-group">
+                            <label for="calcShares">Nombre d'actions</label>
+                            <input type="number" id="calcShares" placeholder="Ex: 10" min="1">
+                        </div>
+                        <button id="calculateBtn" class="calc-btn">💰 Calculer l'investissement</button>
+                    </div>
+                    <div id="calculatorResults" class="calculator-results"></div>
+                </div>
+            </section>
+        </main>
 
-<!-- Time Machine Section -->
-<section class="time-machine-section" id="timeMachineSection" style="display: none;">
-<h2>⏰ Machine à Remonter le Temps Financier</h2>
-<div class="time-machine-container">
-<div class="time-machine-intro">
-<p>✨ Imaginez... Et si vous aviez investi dans le passé ? Voyagez dans le temps et découvrez ce que vous auriez gagné !</p>
-</div>
+        <footer class="site-footer">
+            Données : <a href="https://www.alphavantage.co" target="_blank" rel="noopener noreferrer">Alpha Vantage</a>
+            · Projet personnel, à but éducatif : ce n'est pas un conseil financier.
+        </footer>
+    </div>
 
-<div class="time-machine-inputs">
-<div class="input-group">
-<label for="tmSymbol">📈 Action à analyser</label>
-<input type="text" id="tmSymbol" placeholder="Ex: AAPL, MSFT, TSLA">
-</div>
-
-<div class="input-group">
-<label for="tmAmount">💰 Montant investi</label>
-<input type="number" id="tmAmount" placeholder="Ex: 1000" min="1" value="1000">
-</div>
-
-<div class="input-group">
-<label for="tmYears">🕰️ Il y a combien d'années ?</label>
-<select id="tmYears">
-<option value="1">1 an</option>
-<option value="2">2 ans</option>
-<option value="3">3 ans</option>
-<option value="5" selected>5 ans</option>
-<option value="10">10 ans</option>
-<option value="15">15 ans</option>
-<option value="20">20 ans</option>
-</select>
-</div>
-
-<button id="timeTravelBtn" class="time-travel-btn">
-🚀 Voyager dans le Temps !
-</button>
-</div>
-
-<div id="timeMachineResults" class="time-machine-results"></div>
-
-<div class="time-machine-presets">
-<h3>💡 Scénarios populaires :</h3>
-<div class="preset-buttons">
-<button class="preset-btn" data-symbol="AAPL" data-amount="1000" data-years="10">
-🍎 Apple il y a 10 ans
-</button>
-<button class="preset-btn" data-symbol="TSLA" data-amount="1000" data-years="5">
-🚗 Tesla il y a 5 ans
-</button>
-<button class="preset-btn" data-symbol="AMZN" data-amount="1000" data-years="15">
-📦 Amazon il y a 15 ans
-</button>
-<button class="preset-btn" data-symbol="MSFT" data-amount="1000" data-years="20">
-💻 Microsoft il y a 20 ans
-</button>
-</div>
-</div>
-</div>
-</section>
-
-<!-- Section de recherche -->
-<section class="search-section">
-<h2>🔍 Découvrir une action</h2>
-<div class="search-box">
-<input 
-type="text" 
-id="stockSearch" 
-placeholder="Entrez un symbole (ex: AAPL, MSFT, GOOGL)"
->
-<button id="searchBtn">Rechercher</button>
-</div>
-<div id="searchResults"></div>
-<div id="chartContainer" style="display: none;">
-<h3 style="color: #8b6f8b; margin: 20px 0 10px 0; font-weight: 300;">📈 Évolution du Prix</h3>
-<canvas id="stockChart"></canvas>
-</div>
-</section>
-
-<!-- Calculateur d'investissement -->
-<section class="calculator-section">
-<h2>✨ Calculateur d'Investissement</h2>
-<div class="calculator-container">
-<div class="calculator-inputs">
-<div class="input-group">
-<label for="calcSymbol">Symbole de l'action</label>
-<input type="text" id="calcSymbol" placeholder="Ex: AAPL">
-</div>
-<div class="input-group">
-<label for="calcShares">Nombre d'actions</label>
-<input type="number" id="calcShares" placeholder="Ex: 10" min="1">
-</div>
-<button id="calculateBtn" class="calc-btn">💰 Calculer l'investissement</button>
-</div>
-<div id="calculatorResults" class="calculator-results"></div>
-</div>
-</section>
-
-<!-- News financières -->
-<section class="news-section">
-<h2>📰 Actualités Financières</h2>
-<div class="news-container">
-<p class="empty-state">Recherchez une action pour voir ses actualités récentes ✨</p>
-</div>
-</section>
-
-<!-- Section de comparaison -->
-<section class="comparison-section">
-<h2>🌸 Comparer mes actions</h2>
-<div id="comparisonArea">
-<p class="empty-state">Sélectionnez des actions pour les comparer en douceur</p>
-</div>
-</section>
-
-<!-- Mon portefeuille -->
-<section class="portfolio-section">
-<h2>💎 Mon Portefeuille Personnel</h2>
-<button id="clearPortfolioBtn" class="secondary-btn">Réinitialiser</button>
-<div id="portfolioList">
-<p class="empty-state">Votre espace est vide. Ajoutez vos premières actions ✨</p>
-</div>
-</section>
-</main>
-</div>
-
-<!-- Overlay pour l'animation de voyage temporel -->
-<div id="timeWarpOverlay" class="time-warp-overlay">
-<div class="time-warp-content">
-<div class="clock-animation">⏰</div>
-<div class="time-warp-text">Voyage dans le temps en cours...</div>
-<div class="time-warp-year"></div>
-</div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="portfolio.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
