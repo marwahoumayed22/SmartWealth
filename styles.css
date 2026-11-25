@@ -857,30 +857,6 @@ body.dark-mode .text-negative {
     white-space: nowrap;
 }
 
-/* Bouton clé API */
-.api-key-btn {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    padding: 10px 16px;
-    font-size: 1.3em;
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(212, 165, 165, 0.3);
-    border-radius: 50px;
-    box-shadow: none;
-    z-index: 10;
-}
-
-.api-key-btn:hover {
-    background: white;
-    transform: scale(1.1);
-}
-
-body.dark-mode .api-key-btn {
-    background: rgba(45, 35, 55, 0.9);
-    border-color: rgba(201, 160, 220, 0.3);
-}
-
 .section-intro {
     color: #7a6a7a;
     margin-bottom: 20px;
@@ -901,29 +877,20 @@ body.dark-mode .site-footer a {
     color: #d8b8ec;
 }
 
-/* Panneau clé API */
-.api-key-section {
-    border: 2px solid rgba(201, 160, 220, 0.5);
+/* Bandeau mode démo */
+.demo-banner {
+    background: linear-gradient(135deg, rgba(232, 195, 158, 0.35) 0%, rgba(201, 160, 220, 0.25) 100%);
+    border: 1px solid rgba(201, 140, 100, 0.4);
+    color: #6b4f3f;
+    padding: 15px 20px;
+    border-radius: 15px;
+    margin-bottom: 25px;
+    line-height: 1.6;
 }
 
-.inline-form {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
-.inline-form input {
-    flex: 1;
-    padding: 15px;
-    border: 2px solid rgba(212, 165, 165, 0.3);
-    border-radius: 12px;
-    font-size: 1.05em;
-    font-family: 'Georgia', serif;
-    background: rgba(255, 255, 255, 0.8);
-}
-
-.demo-btn {
-    margin-bottom: 0;
+body.dark-mode .demo-banner {
+    background: rgba(232, 195, 158, 0.12);
+    color: #f0d4b8;
 }
 
 /* Formulaire de position */
@@ -1029,7 +996,6 @@ body.dark-mode .site-footer {
 }
 
 /* Mode sombre : portefeuille */
-body.dark-mode .inline-form input,
 body.dark-mode .position-form input {
     background: rgba(45, 35, 55, 0.7);
     color: #e8dfe8;
@@ -1119,18 +1085,9 @@ body.dark-mode .input-group label {
         font-size: 2.2em;
     }
 
-    .api-key-btn {
-        top: 10px;
-        left: 10px;
-    }
-
     .theme-toggle {
         top: 10px;
         right: 10px;
-    }
-
-    .inline-form {
-        flex-direction: column;
     }
 
     .position-form {

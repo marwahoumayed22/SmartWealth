@@ -1,5 +1,6 @@
 // Configuration de l'API (Alpha Vantage, 25 requêtes par jour)
 const API_BASE = 'https://www.alphavantage.co/query';
+const API_KEY = 'NA2DSFA47SYVII1X';
 
 // Durée du cache des prix
 const CACHE_MINUTES = 10;
@@ -13,18 +14,17 @@ let comparisonList = [];
 let quoteCache = loadFromStorage('quoteCache', {});
 let allocationChart = null;
 
+// Mode démo : activé avec ?demo dans l'URL, ou automatiquement quand la limite de l'API est atteinte
+const demoRequested = new URLSearchParams(window.location.search).has('demo');
+let demoMode = demoRequested || sessionStorage.getItem('demoMode') === '1';
+
 // Erreurs personnalisées
 class ApiLimitError extends Error {}
-class MissingKeyError extends Error {}
 
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
-    // Clé API
-    document.getElementById('apiKeyForm').addEventListener('submit', saveApiKey);
-    document.getElementById('demoKeyBtn').addEventListener('click', useDemoKey);
-    document.getElementById('apiKeyBtn').addEventListener('click', showApiKeySection);
-    if (!getApiKey()) {
-        showApiKeySection();
+    if (demoMode) {
+        showDemoBanner();
     }
 
     // Portefeuille
@@ -71,52 +71,46 @@ function handleActionClick(event) {
     }
 }
 
-// ===== CLÉ API =====
+// ===== MODE DÉMO =====
 
-function getApiKey() {
-    return loadFromStorage('apiKey', '');
+function enableDemoMode() {
+    if (demoMode) return;
+    demoMode = true;
+    sessionStorage.setItem('demoMode', '1');
+    showDemoBanner();
 }
 
-function showApiKeySection() {
-    const section = document.getElementById('apiKeySection');
-    section.hidden = false;
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    document.getElementById('apiKeyInput').focus({ preventScroll: true });
-}
-
-function saveApiKey(event) {
-    event.preventDefault();
-    const key = document.getElementById('apiKeyInput').value.trim();
-    if (!key) return;
-    applyApiKey(key, 'Clé enregistrée ✨ Vous pouvez rechercher une action.');
-}
-
-function useDemoKey() {
-    applyApiKey('demo', 'Clé « demo » activée : essayez le symbole IBM.');
-    document.getElementById('stockSearch').value = 'IBM';
-}
-
-function applyApiKey(key, message) {
-    saveToStorage('apiKey', key);
-    // Nouvelle clé : vider le cache
-    quoteCache = {};
-    saveToStorage('quoteCache', quoteCache);
-    document.getElementById('apiKeyInput').value = '';
-    document.getElementById('apiKeySection').hidden = true;
-    showMessage(message, 'success');
-    displayPortfolio();
+function showDemoBanner() {
+    const banner = document.getElementById('demoBanner');
+    banner.innerHTML = `
+        <strong>Mode démo</strong> · Données d'exemple (prix non réels)${demoRequested ? '' : ', car la limite quotidienne de l\'API gratuite est atteinte'}.
+        Actions disponibles : ${DEMO_SYMBOLS.join(', ')}.
+    `;
+    banner.hidden = false;
 }
 
 // ===== APPELS À L'API =====
 
-// Appel générique à l'API
+// Appel générique : vraie API, ou données d'exemple en mode démo
 async function apiFetch(params) {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        throw new MissingKeyError('Aucune clé API');
+    if (demoMode) {
+        return demoResponse(params);
     }
 
-    const url = `${API_BASE}?${new URLSearchParams({ ...params, apikey: apiKey })}`;
+    try {
+        return await fetchFromApi(params);
+    } catch (error) {
+        // Limite atteinte ou API injoignable : bascule en mode démo
+        if (error instanceof ApiLimitError || error instanceof TypeError) {
+            enableDemoMode();
+            return demoResponse(params);
+        }
+        throw error;
+    }
+}
+
+async function fetchFromApi(params) {
+    const url = `${API_BASE}?${new URLSearchParams({ ...params, apikey: API_KEY })}`;
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -135,14 +129,8 @@ async function apiFetch(params) {
 
 // Message d'erreur selon le type d'erreur
 function errorMessage(error, defaultMessage) {
-    if (error instanceof ApiLimitError && getApiKey() === 'demo') {
-        return 'La clé « demo » ne fonctionne qu\'avec le symbole IBM. Entrez votre propre clé (bouton 🔑) pour les autres actions.';
-    }
-    if (error instanceof ApiLimitError) {
-        return 'Limite de l\'API atteinte (25 requêtes par jour avec la clé gratuite). Réessayez plus tard.';
-    }
-    if (error instanceof MissingKeyError) {
-        return 'Entrez d\'abord votre clé API (bouton 🔑 en haut).';
+    if (demoMode && error.message === 'Action non trouvée') {
+        return `${defaultMessage} En mode démo, essayez : ${DEMO_SYMBOLS.join(', ')}.`;
     }
     return defaultMessage;
 }
@@ -150,7 +138,7 @@ function errorMessage(error, defaultMessage) {
 // Récupérer les données d'une action (avec cache)
 async function fetchStockData(symbol) {
     const cached = quoteCache[symbol];
-    if (cached && Date.now() - cached.savedAt < CACHE_MINUTES * 60 * 1000) {
+    if (!demoMode && cached && Date.now() - cached.savedAt < CACHE_MINUTES * 60 * 1000) {
         return cached.data;
     }
 
@@ -173,8 +161,10 @@ async function fetchStockData(symbol) {
         previousClose: parseFloat(quote['08. previous close'])
     };
 
-    quoteCache[symbol] = { data: stock, savedAt: Date.now() };
-    saveToStorage('quoteCache', quoteCache);
+    if (!demoMode) {
+        quoteCache[symbol] = { data: stock, savedAt: Date.now() };
+        saveToStorage('quoteCache', quoteCache);
+    }
     return stock;
 }
 
@@ -251,10 +241,15 @@ function displayStockCard(stock, containerId) {
 // ===== PORTEFEUILLE =====
 
 // Pré-remplir le formulaire depuis une carte d'action
-function prefillPositionForm(symbol) {
-    const cached = quoteCache[symbol];
+async function prefillPositionForm(symbol) {
     document.getElementById('posSymbol').value = symbol;
-    document.getElementById('posPrice').value = cached ? cached.data.price.toFixed(2) : '';
+    document.getElementById('posPrice').value = '';
+    try {
+        const stock = await fetchStockData(symbol);
+        document.getElementById('posPrice').value = stock.price.toFixed(2);
+    } catch (error) {
+        console.error(error);
+    }
     document.getElementById('portfolioSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
     document.getElementById('posShares').focus({ preventScroll: true });
     showPortfolioMessage(`Indiquez la quantité de ${symbol} achetée, puis cliquez sur Ajouter.`, 'success');
@@ -586,7 +581,9 @@ async function fetchStockNews(symbol) {
     try {
         const data = await apiFetch({ function: 'NEWS_SENTIMENT', tickers: symbol, limit: 6 });
 
-        if (data.feed && data.feed.length > 0) {
+        if (demoMode) {
+            newsContainer.innerHTML = '<p class="no-news">Actualités non disponibles en mode démo.</p>';
+        } else if (data.feed && data.feed.length > 0) {
             displayNews(symbol, data.feed);
         } else {
             newsContainer.innerHTML = `<p class="no-news">Aucune actualité récente trouvée pour ${safeSymbol}.</p>`;

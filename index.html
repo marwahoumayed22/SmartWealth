@@ -10,7 +10,6 @@
 <body>
     <div class="container">
         <header>
-            <button id="apiKeyBtn" class="header-btn api-key-btn" aria-label="Configurer la clé API" title="Clé API">🔑</button>
             <button id="themeToggle" class="theme-toggle" aria-label="Changer de thème">
                 <span class="sun">☀️</span>
                 <span class="moon">🌙</span>
@@ -20,23 +19,7 @@
         </header>
 
         <main>
-            <!-- Clé API -->
-            <section id="apiKeySection" class="api-key-section" hidden>
-                <h2>🔑 Votre clé API</h2>
-                <p class="section-intro">
-                    Les données viennent d'Alpha Vantage. Entrez votre clé gratuite
-                    (<a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener noreferrer">en obtenir une</a>).
-                    Elle reste uniquement dans votre navigateur.
-                </p>
-                <form id="apiKeyForm" class="inline-form">
-                    <label for="apiKeyInput" class="visually-hidden">Clé API</label>
-                    <input type="password" id="apiKeyInput" placeholder="Votre clé Alpha Vantage" autocomplete="off" required>
-                    <button type="submit">Enregistrer</button>
-                </form>
-                <button id="demoKeyBtn" class="secondary-btn demo-btn" type="button">
-                    Essayer avec la clé « demo » (symbole IBM seulement)
-                </button>
-            </section>
+            <div id="demoBanner" class="demo-banner" role="status" hidden></div>
 
             <!-- Section de recherche -->
             <section class="search-section">
@@ -140,6 +123,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script src="portfolio.js"></script>
+    <script src="demo-data.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
