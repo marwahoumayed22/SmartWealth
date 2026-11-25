@@ -1,0 +1,9 @@
+{
+  "name": "smartwealth",
+  "version": "1.0.0",
+  "description": "Tableau de bord boursier en JavaScript : recherche d'actions, graphiques, actualités et suivi de portefeuille",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}
